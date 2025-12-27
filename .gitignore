@@ -1,0 +1,15 @@
+node_modules/
+out/
+dist/
+build/
+*.log
+.env
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+env/
+venv/
+coverage/
+.vscode-test/

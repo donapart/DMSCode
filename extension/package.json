@@ -1,0 +1,424 @@
+{
+  "name": "dmscode",
+  "displayName": "DMSCode - Document Management System",
+  "description": "Verwandelt VS Code in ein vollständiges Document Management System mit OCR, Semantic Search, AI-Chat und mehr",
+  "version": "0.1.0",
+  "publisher": "dmscode",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/donapart/DMSCode"
+  },
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "DMS",
+    "Document Management",
+    "PDF",
+    "OCR",
+    "AI",
+    "Semantic Search"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dms-explorer",
+          "title": "DMS Documents",
+          "icon": "$(files)"
+        },
+        {
+          "id": "dms-search",
+          "title": "DMS Search",
+          "icon": "$(search)"
+        },
+        {
+          "id": "dms-scanner",
+          "title": "DMS Scanner",
+          "icon": "$(device-camera)"
+        }
+      ]
+    },
+    "views": {
+      "dms-explorer": [
+        {
+          "id": "dms.documentsView",
+          "name": "Dokumente",
+          "icon": "$(file-text)",
+          "contextualTitle": "DMS Dokumente"
+        },
+        {
+          "id": "dms.tagsView",
+          "name": "Tags",
+          "icon": "$(tag)"
+        },
+        {
+          "id": "dms.recentView",
+          "name": "Zuletzt verwendet",
+          "icon": "$(history)"
+        }
+      ],
+      "dms-search": [
+        {
+          "id": "dms.searchView",
+          "name": "Semantische Suche",
+          "type": "webview"
+        },
+        {
+          "id": "dms.searchResultsView",
+          "name": "Suchergebnisse"
+        }
+      ],
+      "dms-scanner": [
+        {
+          "id": "dms.scannerView",
+          "name": "Scanner & OCR",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "dms.openDashboard",
+        "title": "DMS: Dashboard öffnen",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "dms.scanDocument",
+        "title": "DMS: Dokument scannen",
+        "icon": "$(device-camera)"
+      },
+      {
+        "command": "dms.semanticSearch",
+        "title": "DMS: Semantische Suche",
+        "icon": "$(search)"
+      },
+      {
+        "command": "dms.openPdfViewer",
+        "title": "DMS: PDF öffnen",
+        "icon": "$(file-pdf)"
+      },
+      {
+        "command": "dms.runOcr",
+        "title": "DMS: OCR ausführen",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "dms.aiChat",
+        "title": "DMS: AI Chat (RAG)",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "dms.textToSpeech",
+        "title": "DMS: Text vorlesen (TTS)",
+        "icon": "$(unmute)"
+      },
+      {
+        "command": "dms.speechToText",
+        "title": "DMS: Spracheingabe (STT)",
+        "icon": "$(mic)"
+      },
+      {
+        "command": "dms.openCalendar",
+        "title": "DMS: Kalender öffnen",
+        "icon": "$(calendar)"
+      },
+      {
+        "command": "dms.importDocuments",
+        "title": "DMS: Dokumente importieren",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "dms.exportDocuments",
+        "title": "DMS: Dokumente exportieren",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "dms.showSettings",
+        "title": "DMS: Einstellungen",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "dms.addTag",
+        "title": "DMS: Tag hinzufügen",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dms.removeTag",
+        "title": "DMS: Tag entfernen",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "dms.renameTag",
+        "title": "DMS: Tag umbenennen",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "dms.deleteTag",
+        "title": "DMS: Tag löschen",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dms.refreshDocuments",
+        "title": "DMS: Dokumente aktualisieren",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "dms.importDocuments",
+          "when": "view == dms.documentsView",
+          "group": "navigation"
+        },
+        {
+          "command": "dms.refreshDocuments",
+          "when": "view == dms.documentsView",
+          "group": "navigation"
+        },
+        {
+          "command": "dms.renameTag",
+          "when": "view == dms.tagsView",
+          "group": "navigation"
+        },
+        {
+          "command": "dms.deleteTag",
+          "when": "view == dms.tagsView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dms.addTag",
+          "when": "viewItem =~ /dms-document-.*/",
+          "group": "tag@1"
+        },
+        {
+          "command": "dms.removeTag",
+          "when": "viewItem =~ /dms-document-.*/",
+          "group": "tag@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "dms.runOcr",
+          "when": "resourceExtname == .pdf || resourceExtname == .png || resourceExtname == .jpg",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "dms.openDashboard"
+        },
+        {
+          "command": "dms.semanticSearch"
+        },
+        {
+          "command": "dms.aiChat"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DMSCode",
+      "properties": {
+        "dms.documentsPath": {
+          "type": "string",
+          "default": "",
+          "description": "Pfad zum Dokumenten-Verzeichnis"
+        },
+        "dms.ocrLanguage": {
+          "type": "string",
+          "default": "deu+eng",
+          "description": "OCR Sprachcode (Tesseract)"
+        },
+        "dms.llmProvider": {
+          "type": "string",
+          "enum": [
+            "ollama",
+            "openai",
+            "anthropic",
+            "azure"
+          ],
+          "default": "ollama",
+          "description": "LLM Provider für AI-Features"
+        },
+        "dms.llmEndpoint": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "LLM API Endpoint"
+        },
+        "dms.llmModel": {
+          "type": "string",
+          "default": "llama3.2",
+          "description": "LLM Modell"
+        },
+        "dms.ttsBackend": {
+          "type": "string",
+          "enum": [
+            "piper",
+            "coqui",
+            "http"
+          ],
+          "default": "piper",
+          "description": "Text-to-Speech Backend"
+        },
+        "dms.ttsEndpoint": {
+          "type": "string",
+          "default": "http://localhost:8505",
+          "description": "TTS Service Endpoint"
+        },
+        "dms.ocrEndpoint": {
+          "type": "string",
+          "default": "http://49.13.150.177:8510",
+          "description": "OCR Service Endpoint"
+        },
+        "dms.semanticSearchEndpoint": {
+          "type": "string",
+          "default": "http://49.13.150.177:8520",
+          "description": "Semantic Search Service Endpoint"
+        },
+        "dms.apiKey": {
+          "type": "string",
+          "default": "13d65edf-ba5c-4fa5-af1b-9434d5143b24",
+          "description": "API Key für Backend Services",
+          "scope": "machine"
+        },
+        "dms.enableSemanticSearch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Semantische Suche aktivieren"
+        },
+        "dms.embeddingModel": {
+          "type": "string",
+          "default": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+          "description": "Embedding-Modell für semantische Suche"
+        },
+        "dms.theme": {
+          "type": "string",
+          "enum": [
+            "dark",
+            "light",
+            "blue"
+          ],
+          "default": "dark",
+          "description": "DMS UI Theme"
+        }
+      }
+    },
+    "customEditors": [
+      {
+        "viewType": "dms.pdfViewer",
+        "displayName": "DMS PDF Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.pdf"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "dms.assistant",
+        "fullName": "DMS Assistant",
+        "name": "dms",
+        "description": "AI-Assistent für Dokumentenmanagement mit RAG",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "search",
+            "description": "Semantische Dokumentensuche"
+          },
+          {
+            "name": "summarize",
+            "description": "Dokument zusammenfassen"
+          },
+          {
+            "name": "extract",
+            "description": "Informationen extrahieren"
+          },
+          {
+            "name": "compare",
+            "description": "Dokumente vergleichen"
+          }
+        ]
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "dms.gettingStarted",
+        "title": "DMSCode Schnellstart",
+        "description": "Lernen Sie die wichtigsten DMS-Funktionen kennen",
+        "steps": [
+          {
+            "id": "dms.welcome",
+            "title": "Willkommen bei DMSCode",
+            "description": "VS Code als vollständiges Document Management System",
+            "media": {
+              "markdown": "walkthroughs/welcome.md"
+            }
+          },
+          {
+            "id": "dms.configureDocuments",
+            "title": "Dokumentenpfad konfigurieren",
+            "description": "Legen Sie fest, wo Ihre Dokumente gespeichert werden",
+            "media": {
+              "markdown": "walkthroughs/configure.md"
+            },
+            "completionEvents": [
+              "onSettingChanged:dms.documentsPath"
+            ]
+          },
+          {
+            "id": "dms.firstScan",
+            "title": "Erstes Dokument scannen",
+            "description": "Scannen Sie ein Dokument mit OCR",
+            "media": {
+              "markdown": "walkthroughs/scan.md"
+            },
+            "completionEvents": [
+              "onCommand:dms.scanDocument"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.x",
+    "@types/mocha": "^10.x",
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^6.x",
+    "@typescript-eslint/parser": "^6.x",
+    "@vscode/test-electron": "^2.x",
+    "@vscode/vsce": "^2.x",
+    "eslint": "^8.x",
+    "glob": "^10.x",
+    "mocha": "^10.x",
+    "typescript": "^5.x"
+  },
+  "dependencies": {
+    "axios": "^1.6.x",
+    "pdf-lib": "^1.17.x"
+  }
+}

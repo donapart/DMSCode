@@ -1,0 +1,126 @@
+# DMSCode Backend Services
+# Deploy auf: 49.13.150.177 (dano@hetzner)
+# 
+# Verwendung:
+#   scp -r docker/ dano@49.13.150.177:~/dms-backend/
+#   ssh dano@49.13.150.177 "cd ~/dms-backend && docker-compose up -d"
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # Ollama - LLM Server
+  # ===========================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: dms-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    # GPU Support (optional - auskommentieren wenn keine GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================
+  # OCR Service - Tesseract + API
+  # ===========================================
+  ocr:
+    image: thecodingmachine/gotenberg:8
+    container_name: dms-ocr
+    restart: unless-stopped
+    ports:
+      - "8510:3000"
+    environment:
+      - LOG_LEVEL=info
+      - CHROMIUM_DISABLE_JAVASCRIPT=true
+      - CHROMIUM_ALLOW_LIST=file:///tmp.*
+
+  # Alternative: Dedizierter Tesseract Service
+  tesseract-ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile.ocr
+    container_name: dms-tesseract
+    restart: unless-stopped
+    ports:
+      - "8511:8000"
+    volumes:
+      - ocr_cache:/app/cache
+
+  # ===========================================
+  # Semantic Search - Embeddings + Vector DB
+  # ===========================================
+  semantic-search:
+    build:
+      context: .
+      dockerfile: Dockerfile.search
+    container_name: dms-search
+    restart: unless-stopped
+    ports:
+      - "8520:8000"
+    volumes:
+      - search_data:/app/data
+    environment:
+      - MODEL_NAME=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+      - DEVICE=cpu  # oder cuda für GPU
+
+  # ===========================================
+  # TTS Service - Piper
+  # ===========================================
+  tts:
+    image: rhasspy/piper:latest
+    container_name: dms-tts
+    restart: unless-stopped
+    ports:
+      - "8505:8000"
+    volumes:
+      - tts_voices:/app/voices
+    command: ["--voice", "de_DE-thorsten-high"]
+
+  # ===========================================
+  # Nginx Reverse Proxy (optional)
+  # ===========================================
+  nginx:
+    image: nginx:alpine
+    container_name: dms-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - ollama
+      - ocr
+      - semantic-search
+      - tts
+
+volumes:
+  ollama_data:
+    driver: local
+  ocr_cache:
+    driver: local
+  search_data:
+    driver: local
+  tts_voices:
+    driver: local
+
+networks:
+  default:
+    name: dms-network

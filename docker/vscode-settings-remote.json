@@ -1,0 +1,26 @@
+{
+    // DMSCode Settings für Hetzner Backend
+    // Server: 49.13.150.177
+    
+    // LLM / Ollama Einstellungen
+    "dms.llmProvider": "ollama",
+    "dms.llmEndpoint": "http://49.13.150.177:11434",
+    "dms.llmModel": "llama3.2",
+    
+    // TTS Service
+    "dms.ttsBackend": "http",
+    "dms.ttsEndpoint": "http://49.13.150.177:8505",
+    
+    // Semantische Suche
+    "dms.enableSemanticSearch": true,
+    "dms.embeddingModel": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    
+    // OCR
+    "dms.ocrLanguage": "deu+eng",
+    
+    // Dokumente lokal speichern
+    "dms.documentsPath": "${userHome}/Documents/DMS",
+    
+    // UI Theme
+    "dms.theme": "dark"
+}

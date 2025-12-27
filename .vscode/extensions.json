@@ -1,0 +1,53 @@
+{
+  "recommendations": [
+    // TypeScript & JavaScript Entwicklung
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+
+    // VS Code Extension Entwicklung
+    "ms-vscode.extension-test-runner",
+    "connor4312.esbuild-problem-matchers",
+    "ms-vscode.vscode-selfhost-test-provider",
+
+    // AI & Copilot
+    "github.copilot",
+    "github.copilot-chat",
+
+    // Git
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Markdown & Dokumentation
+    "yzhang.markdown-all-in-one",
+    "bierner.markdown-mermaid",
+
+    // REST API Testing
+    "humao.rest-client",
+
+    // PDF Vorschau (für Tests)
+    "tomoki1207.pdf",
+
+    // Docker (für Backend-Services)
+    "ms-azuretools.vscode-docker",
+
+    // YAML (für Konfigurationen)
+    "redhat.vscode-yaml",
+
+    // JSON Schema
+    "remcohaszing.schemastore",
+
+    // Prettier Code Formatter
+    "esbenp.prettier-vscode",
+
+    // Error Lens (Inline Fehleranzeige)
+    "usernamehw.errorlens",
+
+    // Todo Tree
+    "gruntfuggly.todo-tree",
+
+    // Better Comments
+    "aaron-bond.better-comments"
+  ],
+  "unwantedRecommendations": []
+}

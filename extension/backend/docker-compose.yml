@@ -1,0 +1,106 @@
+services:
+  # Ollama - LLM Backend
+  ollama:
+    image: ollama/ollama:latest
+    container_name: dmscode-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    deploy:
+      resources:
+        limits:
+          memory: 10G
+          cpus: "4"
+        reservations:
+          memory: 4G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # OCR Service - Texterkennung
+  ocr:
+    build:
+      context: ./ocr
+      dockerfile: Dockerfile
+    image: dmscode-ocr:latest
+    container_name: dmscode-ocr
+    restart: unless-stopped
+    environment:
+      - DMS_API_KEY=13d65edf-ba5c-4fa5-af1b-9434d5143b24
+    ports:
+      - "8510:8510"
+    volumes:
+      - ocr_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8510/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # Semantic Search - Vektorsuche mit ChromaDB
+  semantic-search:
+    build:
+      context: ./semantic
+      dockerfile: Dockerfile
+    image: dmscode-semantic:latest
+    container_name: dmscode-semantic
+    restart: unless-stopped
+    ports:
+      - "8520:8520"
+    volumes:
+      - chroma_data:/data
+      - hf_cache:/data/hf_cache
+    environment:
+      - DMS_API_KEY=13d65edf-ba5c-4fa5-af1b-9434d5143b24
+      - CHROMA_DB_PATH=/data/chroma
+      - HF_HOME=/data/hf_cache
+      - TRANSFORMERS_CACHE=/data/hf_cache
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8520/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+volumes:
+  ollama_data:
+  ocr_data:
+  chroma_data:
+  hf_cache:
+
+networks:
+  default:
+    name: dmscode-network

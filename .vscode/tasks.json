@@ -1,0 +1,76 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "npm: watch - extension",
+      "type": "npm",
+      "script": "watch",
+      "path": "extension",
+      "isBackground": true,
+      "problemMatcher": "$tsc-watch",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "npm: compile - extension",
+      "type": "npm",
+      "script": "compile",
+      "path": "extension",
+      "problemMatcher": "$tsc",
+      "group": "build"
+    },
+    {
+      "label": "npm: lint - extension",
+      "type": "npm",
+      "script": "lint",
+      "path": "extension",
+      "problemMatcher": "$eslint-stylish"
+    },
+    {
+      "label": "npm: test - extension",
+      "type": "npm",
+      "script": "test",
+      "path": "extension",
+      "group": "test"
+    },
+    {
+      "label": "npm: package - extension",
+      "type": "npm",
+      "script": "package",
+      "path": "extension",
+      "problemMatcher": []
+    },
+    {
+      "label": "Install Dependencies",
+      "type": "shell",
+      "command": "npm install",
+      "options": {
+        "cwd": "${workspaceFolder}/extension"
+      }
+    },
+    {
+      "label": "Start Backend Services",
+      "type": "shell",
+      "command": "docker-compose up -d",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Stop Backend Services",
+      "type": "shell",
+      "command": "docker-compose down",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

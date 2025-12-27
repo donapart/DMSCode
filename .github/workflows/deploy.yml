@@ -1,0 +1,39 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Copy files via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "extension/backend/docker-compose.yml,extension/backend/ocr/Dockerfile,extension/backend/ocr/ocr_server.py,extension/backend/semantic/Dockerfile,extension/backend/semantic/semantic_server.py"
+          target: "/root/deploy_temp"
+          strip_components: 2
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Move files to correct locations
+            cp /root/deploy_temp/docker-compose.yml /root/
+            cp /root/deploy_temp/ocr/* /root/ocr/
+            cp /root/deploy_temp/semantic/* /root/semantic/
+            rm -rf /root/deploy_temp
+
+            # Rebuild and restart
+            cd /root
+            docker compose up -d --build --remove-orphans
+            docker system prune -f

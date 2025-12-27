@@ -1,0 +1,27 @@
+# OCR Service mit Tesseract
+FROM python:3.11-slim
+
+# Tesseract und Sprachen installieren
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-deu \
+    tesseract-ocr-eng \
+    tesseract-ocr-fra \
+    tesseract-ocr-ita \
+    tesseract-ocr-spa \
+    poppler-utils \
+    libmagic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Python Dependencies
+COPY requirements-ocr.txt .
+RUN pip install --no-cache-dir -r requirements-ocr.txt
+
+# OCR Service Code
+COPY ocr_service.py .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "ocr_service:app", "--host", "0.0.0.0", "--port", "8000"]

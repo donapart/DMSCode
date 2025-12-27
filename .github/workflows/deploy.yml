@@ -16,8 +16,8 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "extension/backend/docker-compose.yml,extension/backend/nginx.conf,extension/backend/ocr/Dockerfile,extension/backend/ocr/ocr_server.py,extension/backend/semantic/Dockerfile,extension/backend/semantic/semantic_server.py"
-          target: "/root/deploy_temp"
+          source: "extension/backend/*"
+          target: "/root/dms"
           strip_components: 2
 
       - name: Deploy via SSH
@@ -27,14 +27,12 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Move files to correct locations
-            cp /root/deploy_temp/docker-compose.yml /root/
-            cp /root/deploy_temp/nginx.conf /root/
-            cp /root/deploy_temp/ocr/* /root/ocr/
-            cp /root/deploy_temp/semantic/* /root/semantic/
-            rm -rf /root/deploy_temp
+            cd /root/dms
 
-            # Rebuild and restart
-            cd /root
-            docker compose up -d --build --remove-orphans
+            # Create necessary directories for volumes if they don't exist
+            mkdir -p ocr semantic
+
+            # Rebuild and restart containers
+            docker compose down --remove-orphans
+            docker compose up -d --build
             docker system prune -f

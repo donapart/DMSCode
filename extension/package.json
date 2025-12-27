@@ -254,8 +254,8 @@
         },
         "dms.llmEndpoint": {
           "type": "string",
-          "default": "http://localhost:11434",
-          "description": "LLM API Endpoint"
+          "default": "http://49.13.150.177",
+          "description": "LLM API Endpoint (z.B. http://localhost:11434 oder http://api.dmscode.frey.plus)"
         },
         "dms.llmModel": {
           "type": "string",
@@ -274,17 +274,17 @@
         },
         "dms.ttsEndpoint": {
           "type": "string",
-          "default": "http://localhost:8505",
+          "default": "http://49.13.150.177:8505",
           "description": "TTS Service Endpoint"
         },
         "dms.ocrEndpoint": {
           "type": "string",
-          "default": "http://49.13.150.177:8510",
+          "default": "http://49.13.150.177/ocr",
           "description": "OCR Service Endpoint"
         },
         "dms.semanticSearchEndpoint": {
           "type": "string",
-          "default": "http://49.13.150.177:8520",
+          "default": "http://49.13.150.177/search",
           "description": "Semantic Search Service Endpoint"
         },
         "dms.apiKey": {

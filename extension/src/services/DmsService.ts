@@ -135,7 +135,7 @@ export class DmsService {
   }
 
   get llmEndpoint(): string {
-    return this.getConfig<string>("llmEndpoint") || "http://localhost:11434";
+    return this.getConfig<string>("llmEndpoint") || "http://49.13.150.177";
   }
 
   get llmModel(): string {
@@ -143,7 +143,7 @@ export class DmsService {
   }
 
   get ttsEndpoint(): string {
-    return this.getConfig<string>("ttsEndpoint") || "http://localhost:8505";
+    return this.getConfig<string>("ttsEndpoint") || "http://49.13.150.177:8505";
   }
 
   get ocrLanguage(): string {
@@ -151,13 +151,13 @@ export class DmsService {
   }
 
   get ocrEndpoint(): string {
-    return this.getConfig<string>("ocrEndpoint") || "http://localhost:8510";
+    return this.getConfig<string>("ocrEndpoint") || "http://49.13.150.177/ocr";
   }
 
   get semanticSearchEndpoint(): string {
     return (
       this.getConfig<string>("semanticSearchEndpoint") ||
-      "http://localhost:8520"
+      "http://49.13.150.177/search"
     );
   }
 

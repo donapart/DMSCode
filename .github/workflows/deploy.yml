@@ -16,7 +16,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "extension/backend/docker-compose.yml,extension/backend/ocr/Dockerfile,extension/backend/ocr/ocr_server.py,extension/backend/semantic/Dockerfile,extension/backend/semantic/semantic_server.py"
+          source: "extension/backend/docker-compose.yml,extension/backend/nginx.conf,extension/backend/ocr/Dockerfile,extension/backend/ocr/ocr_server.py,extension/backend/semantic/Dockerfile,extension/backend/semantic/semantic_server.py"
           target: "/root/deploy_temp"
           strip_components: 2
 
@@ -29,6 +29,7 @@ jobs:
           script: |
             # Move files to correct locations
             cp /root/deploy_temp/docker-compose.yml /root/
+            cp /root/deploy_temp/nginx.conf /root/
             cp /root/deploy_temp/ocr/* /root/ocr/
             cp /root/deploy_temp/semantic/* /root/semantic/
             rm -rf /root/deploy_temp

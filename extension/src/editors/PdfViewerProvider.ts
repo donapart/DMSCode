@@ -1,65 +1,73 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export class PdfViewerProvider implements vscode.CustomReadonlyEditorProvider {
-    public static register(context: vscode.ExtensionContext): vscode.Disposable {
-        const provider = new PdfViewerProvider(context);
-        return vscode.window.registerCustomEditorProvider(
-            'dms.pdfViewer',
-            provider,
-            {
-                supportsMultipleEditorsPerDocument: true,
-                webviewOptions: {
-                    retainContextWhenHidden: true
-                }
-            }
-        );
-    }
+  public static register(context: vscode.ExtensionContext): vscode.Disposable {
+    const provider = new PdfViewerProvider(context);
+    return vscode.window.registerCustomEditorProvider(
+      "dms.pdfViewer",
+      provider,
+      {
+        supportsMultipleEditorsPerDocument: true,
+        webviewOptions: {
+          retainContextWhenHidden: true,
+        },
+      }
+    );
+  }
 
-    constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext) {}
 
-    async openCustomDocument(
-        uri: vscode.Uri,
-        openContext: vscode.CustomDocumentOpenContext,
-        token: vscode.CancellationToken
-    ): Promise<vscode.CustomDocument> {
-        return { uri, dispose: () => {} };
-    }
+  async openCustomDocument(
+    uri: vscode.Uri,
+    openContext: vscode.CustomDocumentOpenContext,
+    token: vscode.CancellationToken
+  ): Promise<vscode.CustomDocument> {
+    return { uri, dispose: () => {} };
+  }
 
-    async resolveCustomEditor(
-        document: vscode.CustomDocument,
-        webviewPanel: vscode.WebviewPanel,
-        token: vscode.CancellationToken
-    ): Promise<void> {
-        webviewPanel.webview.options = {
-            enableScripts: true
-        };
+  async resolveCustomEditor(
+    document: vscode.CustomDocument,
+    webviewPanel: vscode.WebviewPanel,
+    token: vscode.CancellationToken
+  ): Promise<void> {
+    webviewPanel.webview.options = {
+      enableScripts: true,
+    };
 
-        webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview, document.uri);
+    webviewPanel.webview.html = this.getHtmlForWebview(
+      webviewPanel.webview,
+      document.uri
+    );
 
-        webviewPanel.webview.onDidReceiveMessage(async message => {
-            switch (message.command) {
-                case 'runOcr':
-                    vscode.commands.executeCommand('dms.runOcr', document.uri);
-                    break;
-                case 'copy':
-                    vscode.env.clipboard.writeText(message.text);
-                    vscode.window.showInformationMessage('Text kopiert!');
-                    break;
-            }
-        });
-    }
+    webviewPanel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.command) {
+        case "runOcr":
+          vscode.commands.executeCommand("dms.runOcr", document.uri);
+          break;
+        case "copy":
+          vscode.env.clipboard.writeText(message.text);
+          vscode.window.showInformationMessage("Text kopiert!");
+          break;
+      }
+    });
+  }
 
-    private getHtmlForWebview(webview: vscode.Webview, uri: vscode.Uri): string {
-        // Create a webview URI for the PDF file
-        const pdfUri = webview.asWebviewUri(uri);
-        
-        return `<!DOCTYPE html>
+  private getHtmlForWebview(webview: vscode.Webview, uri: vscode.Uri): string {
+    // Create a webview URI for the PDF file
+    const pdfUri = webview.asWebviewUri(uri);
+
+    return `<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Viewer</title>
+    <!-- Fallback to local pdf.js if available, otherwise CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Configure worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
     <style>
         :root {
             --bg: var(--vscode-editor-background);
@@ -247,5 +255,5 @@ export class PdfViewerProvider implements vscode.CustomReadonlyEditorProvider {
     </script>
 </body>
 </html>`;
-    }
+  }
 }

@@ -25,18 +25,36 @@ DMSCode/
 ### Option 2: Custom VS Code Distribution (Komplexer)
 Eigener Fork von VS Code mit eingebauten DMS-Features.
 
-## 📦 Geplante Features als VS Code Extension
+## 📦 Features
 
-| Feature | VS Code API | Status |
-|---------|-------------|--------|
-| **Dokumenten-Explorer** | TreeView API | 🔲 |
-| **PDF Viewer** | Custom Editor API | 🔲 |
-| **OCR Scanner** | Webview API | 🔲 |
-| **Semantic Search** | Search Provider API | 🔲 |
-| **AI Chat (RAG)** | Chat Participant API | 🔲 |
-| **TTS/STT** | Webview + External Service | 🔲 |
-| **Kalender** | Webview Panel | 🔲 |
-| **Dashboard** | Webview Panel | 🔲 |
+| Feature                 | Status | Beschreibung                                               |
+| ----------------------- | ------ | ---------------------------------------------------------- |
+| **Dokumenten-Explorer** | ✅      | TreeView mit Dokumenten, Tags und Suchergebnissen.         |
+| **PDF Viewer**          | ✅      | Integrierter PDF-Viewer (pdf.js) mit OCR-Button.           |
+| **OCR Scanner**         | ✅      | Texterkennung für Bilder und PDFs (Tesseract/LLM).         |
+| **Semantic Search**     | ✅      | Suche nach Bedeutung statt nur Keywords (RAG).             |
+| **AI Chat (@dms)**      | ✅      | Chat mit Dokumenten, Zusammenfassungen, Extraktion.        |
+| **Auto-Tagging**        | ✅      | KI schlägt Tags basierend auf Inhalt vor.                  |
+| **Portable Index**      | ✅      | Metadaten liegen in `dms-index.json` direkt beim Dokument. |
+| **Kalender**            | ✅      | Zeitliche Übersicht der Dokumente.                         |
+| **Dashboard**           | ✅      | Übersicht über letzte Dokumente und Tag-Cloud.             |
+
+## 🌟 Highlights
+
+### Portable Index (`dms-index.json`)
+DMSCode speichert alle Metadaten (Tags, OCR-Status, Beschreibungen) in einer `dms-index.json` Datei direkt in Ihrem Dokumentenordner.
+- **Vorteil**: Sie können den Ordner auf einen anderen PC kopieren oder synchronisieren (Dropbox, OneDrive), und alle Tags bleiben erhalten.
+- **Kein Lock-in**: Die Daten gehören Ihnen, nicht der Extension.
+
+### AI & RAG Integration
+Nutzen Sie `@dms` im Chat, um mit Ihren Dokumenten zu interagieren:
+- **Chat with Document**: Rechtsklick auf eine Datei -> "Chat with Document".
+- **Auto-Tagging**: Lassen Sie die KI passende Tags vorschlagen.
+- **Data Extraction**: Extrahieren Sie strukturierte Daten (Rechnungsnummer, Datum) aus PDFs.
+
+### Health & Maintenance
+- **Health Check**: Prüfen Sie die Verbindung zu allen Services (OCR, LLM, Search) mit `DMS: Check System Health`.
+- **Reindex**: Reparieren oder aktualisieren Sie den Index jederzeit mit `DMS: Reindex All Documents`.
 
 ## 🚀 Quick Start
 
@@ -73,13 +91,13 @@ npm run watch
 
 Das bestehende DMS (vscode_style_ui.html) wird schrittweise migriert:
 
-| Web-Component | VS Code Equivalent |
-|---------------|-------------------|
-| Activity Bar | Extension contributes activitybar |
-| Sidebar Views | TreeView Provider |
-| Editor Tabs | Custom Editor Provider |
-| Panel | Output Channel / Webview Panel |
-| Status Bar | StatusBarItem API |
-| Context Menu | contributes.menus |
-| Command Palette | contributes.commands |
-| Settings | contributes.configuration |
+| Web-Component   | VS Code Equivalent                |
+| --------------- | --------------------------------- |
+| Activity Bar    | Extension contributes activitybar |
+| Sidebar Views   | TreeView Provider                 |
+| Editor Tabs     | Custom Editor Provider            |
+| Panel           | Output Channel / Webview Panel    |
+| Status Bar      | StatusBarItem API                 |
+| Context Menu    | contributes.menus                 |
+| Command Palette | contributes.commands              |
+| Settings        | contributes.configuration         |

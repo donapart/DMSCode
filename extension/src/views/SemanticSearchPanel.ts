@@ -1,90 +1,110 @@
-import * as vscode from 'vscode';
-import { DmsService, SearchResult } from '../services/DmsService';
+import * as vscode from "vscode";
+import { SearchResultsProvider } from "../providers/SearchResultsProvider";
+import { DmsService } from "../services/DmsService";
 
 export class SemanticSearchPanel {
-    public static currentPanel: SemanticSearchPanel | undefined;
-    private readonly _panel: vscode.WebviewPanel;
-    private _disposables: vscode.Disposable[] = [];
+  public static currentPanel: SemanticSearchPanel | undefined;
+  private readonly _panel: vscode.WebviewPanel;
+  private _disposables: vscode.Disposable[] = [];
 
-    public static createOrShow(extensionUri: vscode.Uri, dmsService: DmsService, initialQuery?: string) {
-        const column = vscode.ViewColumn.Beside;
+  public static createOrShow(
+    extensionUri: vscode.Uri,
+    dmsService: DmsService,
+    searchResultsProvider: SearchResultsProvider,
+    initialQuery?: string
+  ) {
+    const column = vscode.ViewColumn.Beside;
 
-        if (SemanticSearchPanel.currentPanel) {
-            SemanticSearchPanel.currentPanel._panel.reveal(column);
-            if (initialQuery) {
-                SemanticSearchPanel.currentPanel.search(initialQuery);
-            }
-            return;
+    if (SemanticSearchPanel.currentPanel) {
+      SemanticSearchPanel.currentPanel._panel.reveal(column);
+      if (initialQuery) {
+        SemanticSearchPanel.currentPanel.search(initialQuery);
+      }
+      return;
+    }
+
+    const panel = vscode.window.createWebviewPanel(
+      "dmsSearch",
+      "DMS Semantische Suche",
+      column,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+      }
+    );
+
+    SemanticSearchPanel.currentPanel = new SemanticSearchPanel(
+      panel,
+      extensionUri,
+      dmsService,
+      searchResultsProvider,
+      initialQuery
+    );
+  }
+
+  private constructor(
+    panel: vscode.WebviewPanel,
+    private extensionUri: vscode.Uri,
+    private dmsService: DmsService,
+    private searchResultsProvider: SearchResultsProvider,
+    initialQuery?: string
+  ) {
+    this._panel = panel;
+    this._update();
+
+    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+
+    this._panel.webview.onDidReceiveMessage(
+      async (message) => {
+        switch (message.command) {
+          case "search":
+            await this.search(message.query);
+            break;
+          case "openDocument":
+            vscode.commands.executeCommand(
+              "vscode.open",
+              vscode.Uri.file(message.path)
+            );
+            break;
         }
+      },
+      null,
+      this._disposables
+    );
 
-        const panel = vscode.window.createWebviewPanel(
-            'dmsSearch',
-            'DMS Semantische Suche',
-            column,
-            {
-                enableScripts: true,
-                retainContextWhenHidden: true
-            }
-        );
-
-        SemanticSearchPanel.currentPanel = new SemanticSearchPanel(panel, extensionUri, dmsService, initialQuery);
+    if (initialQuery) {
+      this.search(initialQuery);
     }
+  }
 
-    private constructor(
-        panel: vscode.WebviewPanel,
-        private extensionUri: vscode.Uri,
-        private dmsService: DmsService,
-        initialQuery?: string
-    ) {
-        this._panel = panel;
-        this._update();
+  private async search(query: string) {
+    this._panel.webview.postMessage({ command: "searching" });
 
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+    try {
+      const results = await this.dmsService.semanticSearch(query);
 
-        this._panel.webview.onDidReceiveMessage(
-            async message => {
-                switch (message.command) {
-                    case 'search':
-                        await this.search(message.query);
-                        break;
-                    case 'openDocument':
-                        vscode.commands.executeCommand('vscode.open', vscode.Uri.file(message.path));
-                        break;
-                }
-            },
-            null,
-            this._disposables
-        );
+      // Update Tree View
+      this.searchResultsProvider.setResults(results);
 
-        if (initialQuery) {
-            this.search(initialQuery);
-        }
+      this._panel.webview.postMessage({
+        command: "results",
+        results,
+        query,
+      });
+    } catch (error) {
+      this._panel.webview.postMessage({
+        command: "error",
+        error: String(error),
+      });
     }
+  }
 
-    private async search(query: string) {
-        this._panel.webview.postMessage({ command: 'searching' });
-        
-        try {
-            const results = await this.dmsService.semanticSearch(query);
-            this._panel.webview.postMessage({ 
-                command: 'results', 
-                results,
-                query 
-            });
-        } catch (error) {
-            this._panel.webview.postMessage({ 
-                command: 'error', 
-                error: String(error) 
-            });
-        }
-    }
+  private _update() {
+    this._panel.webview.html = this._getHtmlForWebview();
+  }
 
-    private _update() {
-        this._panel.webview.html = this._getHtmlForWebview();
-    }
-
-    private _getHtmlForWebview(): string {
-        return `<!DOCTYPE html>
+  private _getHtmlForWebview(): string {
+    return `<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -286,16 +306,16 @@ export class SemanticSearchPanel {
     </script>
 </body>
 </html>`;
-    }
+  }
 
-    public dispose() {
-        SemanticSearchPanel.currentPanel = undefined;
-        this._panel.dispose();
-        while (this._disposables.length) {
-            const x = this._disposables.pop();
-            if (x) {
-                x.dispose();
-            }
-        }
+  public dispose() {
+    SemanticSearchPanel.currentPanel = undefined;
+    this._panel.dispose();
+    while (this._disposables.length) {
+      const x = this._disposables.pop();
+      if (x) {
+        x.dispose();
+      }
     }
+  }
 }

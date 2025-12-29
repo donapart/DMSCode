@@ -1,0 +1,83 @@
+{
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DMSCode - Document Management System Einstellungen
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // 📁 Dokumentenpfad - Wo werden Ihre Dokumente gespeichert?
+  "dms.documentsPath": "D:\\Dokumente\\DMS",
+
+  // 🌐 Backend-Services (lokal oder remote)
+  "dms.llmEndpoint": "http://localhost:11434",
+  "dms.llmModel": "llama3.2",
+  "dms.llmProvider": "ollama",
+  
+  "dms.ocrEndpoint": "http://localhost:8510/ocr",
+  "dms.ocrLanguage": "deu+eng",
+  
+  "dms.semanticSearchEndpoint": "http://localhost:8520/search",
+  "dms.enableSemanticSearch": true,
+  "dms.embeddingModel": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  
+  "dms.ttsEndpoint": "http://localhost:8505",
+  "dms.ttsBackend": "piper",
+
+  // 🎨 Theme
+  "dms.theme": "dark",
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VS Code Einstellungen für optimale DMS-Erfahrung
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // Editor
+  "editor.fontSize": 14,
+  "editor.fontFamily": "'Cascadia Code', 'Fira Code', Consolas, monospace",
+  "editor.fontLigatures": true,
+  "editor.minimap.enabled": false,
+  "editor.wordWrap": "on",
+  
+  // Workbench
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.iconTheme": "vs-seti",
+  "workbench.startupEditor": "none",
+  "workbench.activityBar.location": "default",
+  
+  // Sidebar standardmäßig auf DMS Explorer
+  "workbench.view.alwaysShowHeaderActions": true,
+  
+  // Terminal
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.fontSize": 13,
+  
+  // Dateien
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true,
+    "**/*.pyc": true
+  },
+  
+  // Suche
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.cache": true
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Empfohlene Extensions
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // PDF Viewer
+  "workbench.editorAssociations": {
+    "*.pdf": "dms.pdfViewer"
+  },
+  
+  // Git
+  "git.enableSmartCommit": true,
+  "git.autofetch": true,
+
+  // Copilot Chat
+  "github.copilot.chat.localeOverride": "de"
+}

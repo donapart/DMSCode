@@ -20,16 +20,27 @@ Willkommen bei **DMSCode** - Ihr Document Management System direkt in VS Code!
 - **📷 Scanner & OCR** - Scannen und Texterkennung direkt in VS Code
 - **🤖 AI-Assistent** - Chat mit @dms für intelligente Dokumentenanalyse
 - **📊 Dashboard** - Überblick über alle Ihre Dokumente
+- **🏷️ Auto-Tagging** - KI schlägt automatisch passende Tags vor
+- **💬 Chat mit Dokument** - Stellen Sie Fragen direkt an ein Dokument
+- **📦 Portabler Index** - Ihre Metadaten reisen mit dem Dokumentenordner
 
-## ⌨️ Wichtige Befehle
+## ⌨️ Tastenkürzel
 
-| Befehl | Beschreibung |
-|--------|-------------|
-| `DMS: Dashboard öffnen` | Zeigt das Übersichts-Dashboard |
-| `DMS: Semantische Suche` | Startet die KI-gestützte Suche |
-| `DMS: Dokument scannen` | Öffnet den Scanner mit OCR |
-| `DMS: AI Chat (RAG)` | Startet den Chat mit @dms |
+| Kürzel         | Aktion                  |
+| -------------- | ----------------------- |
+| `Ctrl+Shift+D` | Dashboard öffnen        |
+| `Ctrl+Shift+S` | Semantische Suche       |
+| `Ctrl+Shift+O` | Scanner/OCR öffnen      |
+| `Ctrl+Shift+I` | Dokumente importieren   |
+| `Ctrl+Shift+H` | Systemstatus prüfen     |
+| `Ctrl+Shift+R` | Dokumente aktualisieren |
 
 ## 🔧 Konfiguration
 
 Alle Einstellungen finden Sie unter `Einstellungen > DMSCode` oder mit `DMS: Einstellungen`.
+
+## 💡 Tipps
+
+- **Rechtsklick** auf ein Dokument zeigt alle verfügbaren Aktionen (Tag, Auto-Tag, Chat, Vergleichen...)
+- Nutzen Sie `@dms` im Chat für KI-gestützte Dokumentenanalyse
+- Der **StatusBar** unten rechts zeigt Ihre Dokumentenanzahl – klicken öffnet das Dashboard

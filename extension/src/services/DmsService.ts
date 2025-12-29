@@ -55,10 +55,63 @@ export class DmsService {
   public readonly context: vscode.ExtensionContext;
   private documentsCache: Map<string, DmsDocument> = new Map();
   private readonly ocrFallbackEnabled: boolean = true;
+  private fileWatcher: vscode.FileSystemWatcher | undefined;
+
+  private _onDidDocumentsChange: vscode.EventEmitter<void> =
+    new vscode.EventEmitter<void>();
+  public readonly onDidDocumentsChange: vscode.Event<void> =
+    this._onDidDocumentsChange.event;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
     this.loadDocumentsCache();
+    this.initializeFileWatcher();
+  }
+
+  private initializeFileWatcher() {
+    const docsPath = this.documentsPath;
+    // Watch for changes in the documents directory
+    this.fileWatcher = vscode.workspace.createFileSystemWatcher(
+      new vscode.RelativePattern(docsPath, "**/*")
+    );
+
+    this.fileWatcher.onDidCreate(async (uri) => {
+      if (this.isSupportedFile(uri.fsPath)) {
+        console.log(`File created: ${uri.fsPath}`);
+        // Only create if not already in cache (prevents overwriting during rename)
+        if (!this.documentsCache.has(uri.fsPath)) {
+          const doc = await this.createDocumentEntry(uri.fsPath);
+          this.documentsCache.set(uri.fsPath, doc);
+          await this.saveDocumentsCache();
+          this._onDidDocumentsChange.fire();
+        }
+      }
+    });
+
+    this.fileWatcher.onDidDelete(async (uri) => {
+      console.log(`File deleted: ${uri.fsPath}`);
+      if (this.documentsCache.has(uri.fsPath)) {
+        this.documentsCache.delete(uri.fsPath);
+        await this.saveDocumentsCache();
+        this._onDidDocumentsChange.fire();
+      }
+    });
+
+    this.fileWatcher.onDidChange(async (uri) => {
+      if (this.isSupportedFile(uri.fsPath)) {
+        console.log(`File changed: ${uri.fsPath}`);
+        // Update modification time
+        const doc = this.documentsCache.get(uri.fsPath);
+        if (doc) {
+          const stats = fs.statSync(uri.fsPath);
+          doc.modifiedAt = stats.mtime;
+          await this.saveDocumentsCache();
+          this._onDidDocumentsChange.fire();
+        }
+      }
+    });
+
+    this.context.subscriptions.push(this.fileWatcher);
   }
 
   // ===== Tag Management =====
@@ -106,6 +159,104 @@ export class DmsService {
       await this.saveDocumentsCache();
     }
     return count;
+  }
+
+  // ===== Auto-Rename & File Operations =====
+
+  async autoRenameDocument(documentId: string): Promise<string> {
+    const oldPath = this.getPathFromId(documentId);
+    const doc = this.documentsCache.get(oldPath);
+
+    if (!doc) {
+      throw new DmsError("Dokument nicht gefunden", "FILE_NOT_FOUND");
+    }
+
+    // 1. Get content for AI
+    let content = doc.ocrText;
+    if (!content || content.length < 50) {
+      // Try to read file if OCR text is missing
+      try {
+        content = await this.runOcrFallback(vscode.Uri.file(oldPath));
+      } catch {
+        content = "";
+      }
+    }
+
+    if (!content || content.length < 10) {
+      throw new DmsError(
+        "Zu wenig Text für automatische Umbenennung",
+        "INVALID_DOCUMENT"
+      );
+    }
+
+    // 2. Ask LLM for filename
+    const prompt = `
+    Analysiere den folgenden Dokumententext und generiere einen passenden Dateinamen.
+    Format: YYYY-MM-DD_Sender_Typ_Kurzbeschreibung.ext
+    
+    Regeln:
+    - Datum: Das wichtigste Datum im Dokument (Rechnungsdatum, Briefdatum). Wenn keins gefunden, nimm heute.
+    - Sender: Firmenname oder Person (z.B. Telekom, Amazon, Finanzamt).
+    - Typ: Rechnung, Vertrag, Brief, Lieferschein, Info.
+    - Kurzbeschreibung: 1-3 Stichworte (optional).
+    - Dateiendung: Muss beibehalten werden (${path.extname(oldPath)}).
+    - Keine Leerzeichen, nutze Unterstriche.
+    - Antworte NUR mit dem Dateinamen, kein anderer Text.
+
+    Dokumententext:
+    ${content.substring(0, 2000)}
+    `;
+
+    const newFilename = (await this.chat(prompt)).trim().replace(/[`'"]/g, "");
+
+    // Validate filename (basic check)
+    if (
+      !newFilename.endsWith(path.extname(oldPath)) ||
+      newFilename.includes(" ")
+    ) {
+      // Fallback or error? Let's try to fix extension
+      const ext = path.extname(oldPath);
+      const fixed = newFilename.split(".")[0].replace(/\s/g, "_") + ext;
+      console.log(`Fixed filename: ${newFilename} -> ${fixed}`);
+      return this.renameDocument(oldPath, fixed);
+    }
+
+    return this.renameDocument(oldPath, newFilename);
+  }
+
+  async renameDocument(oldPath: string, newFilename: string): Promise<string> {
+    if (!fs.existsSync(oldPath)) {
+      throw new DmsError("Ursprungsdatei nicht gefunden", "FILE_NOT_FOUND");
+    }
+
+    const dir = path.dirname(oldPath);
+    const newPath = path.join(dir, newFilename);
+
+    if (fs.existsSync(newPath)) {
+      throw new DmsError("Zieldatei existiert bereits", "INVALID_DOCUMENT");
+    }
+
+    // 1. Rename file
+    fs.renameSync(oldPath, newPath);
+
+    // 2. Update Cache (preserve tags & metadata)
+    const oldDoc = this.documentsCache.get(oldPath);
+    if (oldDoc) {
+      const newDoc: DmsDocument = {
+        ...oldDoc,
+        id: Buffer.from(newPath).toString("base64"),
+        name: newFilename,
+        path: newPath,
+        modifiedAt: new Date(),
+      };
+
+      this.documentsCache.delete(oldPath);
+      this.documentsCache.set(newPath, newDoc);
+      await this.saveDocumentsCache();
+      this._onDidDocumentsChange.fire();
+    }
+
+    return newFilename;
   }
 
   async getDocumentsByTag(tag: string): Promise<DmsDocument[]> {
@@ -180,17 +331,61 @@ export class DmsService {
   // ===== Document Management =====
 
   private async loadDocumentsCache(): Promise<void> {
+    // 1. Try to load from dms-index.json in documents folder (Portable Index)
+    const indexFile = path.join(this.documentsPath, "dms-index.json");
+
+    if (fs.existsSync(indexFile)) {
+      try {
+        const content = fs.readFileSync(indexFile, "utf-8");
+        const data = JSON.parse(content);
+        // Convert date strings back to Date objects
+        for (const key in data) {
+          if (data[key].createdAt)
+            data[key].createdAt = new Date(data[key].createdAt);
+          if (data[key].modifiedAt)
+            data[key].modifiedAt = new Date(data[key].modifiedAt);
+        }
+        this.documentsCache = new Map(Object.entries(data));
+        console.log(`Loaded index from ${indexFile}`);
+        return;
+      } catch (e) {
+        console.error("Failed to load dms-index.json", e);
+      }
+    }
+
+    // 2. Fallback: Load from globalState (Legacy)
     const cacheData =
       this.context.globalState.get<Record<string, DmsDocument>>(
         "documentsCache"
       );
     if (cacheData) {
+      // Migration: If we have data in globalState but not in file, we will save to file next time
       this.documentsCache = new Map(Object.entries(cacheData));
+      // Trigger save to create the file
+      void this.saveDocumentsCache();
     }
   }
 
   private async saveDocumentsCache(): Promise<void> {
+    // Save to dms-index.json
+    const indexFile = path.join(this.documentsPath, "dms-index.json");
     const cacheObject = Object.fromEntries(this.documentsCache);
+
+    try {
+      // Ensure directory exists
+      if (!fs.existsSync(this.documentsPath)) {
+        fs.mkdirSync(this.documentsPath, { recursive: true });
+      }
+      fs.writeFileSync(
+        indexFile,
+        JSON.stringify(cacheObject, null, 2),
+        "utf-8"
+      );
+    } catch (e) {
+      console.error("Failed to save dms-index.json", e);
+    }
+
+    // Keep globalState in sync for now (as backup)
     await this.context.globalState.update("documentsCache", cacheObject);
   }
 
@@ -286,11 +481,16 @@ export class DmsService {
 
   // ===== Import/Export =====
 
-  async importDocuments(uris: vscode.Uri[]): Promise<void> {
+  async importDocuments(
+    uris: vscode.Uri[],
+    conflictStrategy: "overwrite" | "rename" | "skip" = "rename"
+  ): Promise<number> {
     const docsPath = this.documentsPath;
     if (!fs.existsSync(docsPath)) {
       fs.mkdirSync(docsPath, { recursive: true });
     }
+
+    let count = 0;
 
     for (const uri of uris) {
       const stats = fs.statSync(uri.fsPath);
@@ -298,18 +498,63 @@ export class DmsService {
         // Copy entire directory
         const dirName = path.basename(uri.fsPath);
         const targetDir = path.join(docsPath, dirName);
-        this.copyDirectory(uri.fsPath, targetDir);
+        count += this.copyDirectory(uri.fsPath, targetDir, conflictStrategy);
       } else {
         // Copy single file
         const fileName = path.basename(uri.fsPath);
         const targetPath = path.join(docsPath, fileName);
-        fs.copyFileSync(uri.fsPath, targetPath);
+
+        if (this.handleFileImport(uri.fsPath, targetPath, conflictStrategy)) {
+          count++;
+        }
       }
     }
+    return count;
   }
 
-  private copyDirectory(src: string, dest: string): void {
-    fs.mkdirSync(dest, { recursive: true });
+  private handleFileImport(
+    srcPath: string,
+    destPath: string,
+    strategy: "overwrite" | "rename" | "skip"
+  ): boolean {
+    if (fs.existsSync(destPath)) {
+      if (strategy === "skip") {
+        return false;
+      }
+      if (strategy === "rename") {
+        const ext = path.extname(destPath);
+        const name = path.basename(destPath, ext);
+        let counter = 1;
+        let newDest = path.join(
+          path.dirname(destPath),
+          `${name}_${counter}${ext}`
+        );
+        while (fs.existsSync(newDest)) {
+          counter++;
+          newDest = path.join(
+            path.dirname(destPath),
+            `${name}_${counter}${ext}`
+          );
+        }
+        fs.copyFileSync(srcPath, newDest);
+        return true;
+      }
+      // overwrite
+    }
+    fs.copyFileSync(srcPath, destPath);
+    return true;
+  }
+
+  private copyDirectory(
+    src: string,
+    dest: string,
+    strategy: "overwrite" | "rename" | "skip"
+  ): number {
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(dest, { recursive: true });
+    }
+
+    let count = 0;
     const entries = fs.readdirSync(src, { withFileTypes: true });
 
     for (const entry of entries) {
@@ -317,25 +562,43 @@ export class DmsService {
       const destPath = path.join(dest, entry.name);
 
       if (entry.isDirectory()) {
-        this.copyDirectory(srcPath, destPath);
+        count += this.copyDirectory(srcPath, destPath, strategy);
       } else {
-        fs.copyFileSync(srcPath, destPath);
+        if (this.handleFileImport(srcPath, destPath, strategy)) {
+          count++;
+        }
       }
     }
+    return count;
   }
 
-  async exportDocuments(targetUri: vscode.Uri): Promise<void> {
-    const docs = await this.getDocuments();
+  async exportDocuments(
+    targetUri: vscode.Uri,
+    filter?: { tag?: string; after?: Date }
+  ): Promise<number> {
+    let docs = await this.getDocuments();
+
+    // Apply filters
+    if (filter?.tag) {
+      docs = docs.filter((d) => d.tags.includes(filter.tag!));
+    }
+    if (filter?.after) {
+      docs = docs.filter((d) => d.createdAt > filter.after!);
+    }
+
     const targetPath = targetUri.fsPath;
+    let count = 0;
 
     for (const doc of docs) {
-      const relativePath = path.relative(this.documentsPath, doc.path);
-      const targetFile = path.join(targetPath, relativePath);
-      const targetDir = path.dirname(targetFile);
-
-      fs.mkdirSync(targetDir, { recursive: true });
-      fs.copyFileSync(doc.path, targetFile);
+      const destPath = path.join(targetPath, path.basename(doc.path));
+      try {
+        fs.copyFileSync(doc.path, destPath);
+        count++;
+      } catch (e) {
+        console.error(`Export failed for ${doc.path}:`, e);
+      }
     }
+    return count;
   }
 
   // ===== OCR =====
@@ -506,6 +769,17 @@ export class DmsService {
   async semanticSearch(query: string): Promise<SearchResult[]> {
     if (!query || query.trim().length === 0) {
       return [];
+    }
+
+    // Handle "tag:" queries directly
+    if (query.toLowerCase().startsWith("tag:")) {
+      const tag = query.substring(4).trim();
+      const docs = await this.getDocumentsByTag(tag);
+      return docs.map((doc) => ({
+        document: doc,
+        score: 1.0,
+        snippet: `Tag Match: ${tag}`,
+      }));
     }
 
     try {
@@ -715,6 +989,133 @@ export class DmsService {
     );
   }
 
+  async compareDocuments(docId1: string, docId2: string): Promise<string> {
+    const doc1 = this.documentsCache.get(this.getPathFromId(docId1));
+    const doc2 = this.documentsCache.get(this.getPathFromId(docId2));
+
+    if (!doc1 || !doc2) {
+      throw new DmsError("Dokument(e) nicht gefunden", "FILE_NOT_FOUND");
+    }
+
+    const text1 =
+      doc1.ocrText || (await this.runOcrFallback(vscode.Uri.file(doc1.path)));
+    const text2 =
+      doc2.ocrText || (await this.runOcrFallback(vscode.Uri.file(doc2.path)));
+
+    const prompt = `
+    Vergleiche die folgenden zwei Dokumente.
+    Erstelle eine strukturierte Gegenüberstellung (Markdown).
+    
+    Dokument A: ${doc1.name}
+    ---
+    ${text1.substring(0, 3000)}
+    ---
+
+    Dokument B: ${doc2.name}
+    ---
+    ${text2.substring(0, 3000)}
+    ---
+
+    Aufgabe:
+    1. Fasse den Inhalt beider Dokumente kurz zusammen.
+    2. Liste Gemeinsamkeiten auf.
+    3. Liste Unterschiede auf (besonders Daten, Beträge, Namen).
+    4. Fazit.
+    `;
+
+    return this.chat(prompt);
+  }
+
+  async extractStructuredData(
+    docId: string,
+    templateType: "invoice" | "contract" | "generic"
+  ): Promise<string> {
+    const doc = this.documentsCache.get(this.getPathFromId(docId));
+    if (!doc) {
+      throw new DmsError("Dokument nicht gefunden", "FILE_NOT_FOUND");
+    }
+
+    const text =
+      doc.ocrText || (await this.runOcrFallback(vscode.Uri.file(doc.path)));
+
+    let fields = "";
+    switch (templateType) {
+      case "invoice":
+        fields =
+          "Rechnungsnummer, Rechnungsdatum, Lieferdatum, Gesamtbetrag (Brutto), Währung, Absender (Firma), Empfänger, IBAN, Zahlungsziel";
+        break;
+      case "contract":
+        fields =
+          "Vertragspartner A, Vertragspartner B, Vertragsgegenstand, Startdatum, Laufzeit/Enddatum, Kündigungsfrist, Monatliche Kosten";
+        break;
+      case "generic":
+      default:
+        fields =
+          "Titel, Datum, Hauptakteure, Wichtige Beträge/Zahlen, Zusammenfassung (1 Satz)";
+        break;
+    }
+
+    const prompt = `
+    Analysiere das folgende Dokument und extrahiere die gewünschten Daten im JSON-Format.
+    
+    Dokument: ${doc.name}
+    ---
+    ${text.substring(0, 4000)}
+    ---
+
+    Zu extrahierende Felder: ${fields}
+
+    Antworte NUR mit dem validen JSON-Block. Keine Erklärungen.
+    `;
+
+    return this.chat(prompt);
+  }
+
+  async autoTagDocument(docId: string): Promise<string[]> {
+    const doc = this.documentsCache.get(this.getPathFromId(docId));
+    if (!doc) {
+      throw new DmsError("Dokument nicht gefunden", "FILE_NOT_FOUND");
+    }
+
+    const text =
+      doc.ocrText || (await this.runOcrFallback(vscode.Uri.file(doc.path)));
+    const existingTags = await this.getTags();
+
+    const prompt = `
+    Analysiere das folgende Dokument und schlage passende Tags vor.
+    
+    Dokument: ${doc.name}
+    ---
+    ${text.substring(0, 3000)}
+    ---
+
+    Bereits verwendete Tags im System: ${existingTags.join(", ")}
+
+    Regeln:
+    1. Nutze bevorzugt existierende Tags, wenn sie passen.
+    2. Erstelle neue Tags nur, wenn nötig (kurz, prägnant, lowercase).
+    3. Maximal 5 Tags.
+    4. Antworte NUR mit einer kommagetrennten Liste der Tags (z.B. rechnung, telekom, 2024).
+    `;
+
+    const response = await this.chat(prompt);
+    const newTags = response.split(",").map((t) =>
+      t
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9äöüß\-_]/g, "")
+    );
+
+    // Add tags to document
+    for (const tag of newTags) {
+      if (tag && !doc.tags.includes(tag)) {
+        doc.tags.push(tag);
+      }
+    }
+    await this.saveDocumentsCache();
+    return newTags;
+  }
+
   // ===== TTS/STT =====
 
   async textToSpeech(text: string): Promise<void> {
@@ -811,10 +1212,88 @@ export class DmsService {
         )
         .then((selection) => {
           if (selection === "Panel öffnen") {
-            vscode.commands.executeCommand("dms.speechToText");
+            vscode.commands.executeCommand("dms.openSpeechPanel");
           }
         });
       return "";
     }
+  }
+
+  // ===== System Health & Maintenance =====
+
+  async checkHealth(): Promise<
+    Record<
+      string,
+      { status: "ok" | "error"; message?: string; latency?: number }
+    >
+  > {
+    const services = {
+      ocr: this.ocrEndpoint,
+      search: this.semanticSearchEndpoint,
+      llm: this.llmEndpoint,
+      tts: this.ttsEndpoint,
+    };
+
+    const results: Record<string, any> = {};
+
+    for (const [name, url] of Object.entries(services)) {
+      const start = Date.now();
+      try {
+        // Try a simple GET request to the base URL or /health
+        // We use a short timeout to fail fast
+        await axios.get(url, { timeout: 5000, validateStatus: () => true });
+        results[name] = { status: "ok", latency: Date.now() - start };
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        results[name] = {
+          status: "error",
+          message: axiosError.message,
+          latency: Date.now() - start,
+        };
+      }
+    }
+    return results;
+  }
+
+  async reindexAll(
+    progressCallback?: (current: number, total: number, message: string) => void
+  ): Promise<{ success: number; failed: number }> {
+    const docs = await this.getDocuments();
+    let success = 0;
+    let failed = 0;
+
+    for (let i = 0; i < docs.length; i++) {
+      const doc = docs[i];
+      if (progressCallback) {
+        progressCallback(i + 1, docs.length, `Verarbeite ${doc.name}...`);
+      }
+
+      try {
+        // 1. Ensure OCR text exists
+        if (!doc.ocrText || doc.ocrText.length < 10) {
+          // Try to run OCR if missing
+          try {
+            await this.runOcr(vscode.Uri.file(doc.path));
+            // runOcr already indexes, so we can continue
+            success++;
+            continue;
+          } catch (e) {
+            console.warn(`OCR failed for ${doc.name} during reindex`, e);
+            // If OCR fails, we can't index
+            failed++;
+            continue;
+          }
+        }
+
+        // 2. Send to Search Index
+        await this.indexDocument(doc);
+        success++;
+      } catch (error) {
+        console.error(`Indexing failed for ${doc.name}`, error);
+        failed++;
+      }
+    }
+
+    return { success, failed };
   }
 }

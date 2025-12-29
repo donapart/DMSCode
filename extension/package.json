@@ -2,7 +2,7 @@
   "name": "dmscode",
   "displayName": "DMSCode - Document Management System",
   "description": "Verwandelt VS Code in ein vollständiges Document Management System mit OCR, Semantic Search, AI-Chat und mehr",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "publisher": "dmscode",
   "license": "MIT",
   "repository": {
@@ -169,9 +169,59 @@
         "icon": "$(trash)"
       },
       {
+        "command": "dms.autoRename",
+        "title": "DMS: Auto-Rename (AI)",
+        "icon": "$(wand)"
+      },
+      {
+        "command": "dms.autoTag",
+        "title": "DMS: Auto-Tagging (AI)",
+        "icon": "$(tag)"
+      },
+      {
+        "command": "dms.showDetails",
+        "title": "DMS: Details anzeigen",
+        "icon": "$(info)"
+      },
+      {
+        "command": "dms.compareDocuments",
+        "title": "DMS: Dokumente vergleichen (AI)",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "dms.extractData",
+        "title": "DMS: Daten extrahieren (AI)",
+        "icon": "$(json)"
+      },
+      {
+        "command": "dms.importDocuments",
+        "title": "DMS: Dokumente importieren",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "dms.exportDocuments",
+        "title": "DMS: Dokumente exportieren",
+        "icon": "$(cloud-download)"
+      },
+      {
         "command": "dms.refreshDocuments",
         "title": "DMS: Dokumente aktualisieren",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "dms.chatWithDocument",
+        "title": "DMS: Chat mit Dokument",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "dms.checkHealth",
+        "title": "DMS: Systemstatus prüfen",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "dms.reindexAll",
+        "title": "DMS: Index neu aufbauen",
+        "icon": "$(database)"
       }
     ],
     "menus": {
@@ -179,12 +229,17 @@
         {
           "command": "dms.importDocuments",
           "when": "view == dms.documentsView",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "dms.exportDocuments",
+          "when": "view == dms.documentsView",
+          "group": "navigation@2"
         },
         {
           "command": "dms.refreshDocuments",
           "when": "view == dms.documentsView",
-          "group": "navigation"
+          "group": "navigation@3"
         },
         {
           "command": "dms.renameTag",
@@ -199,6 +254,26 @@
       ],
       "view/item/context": [
         {
+          "command": "dms.showDetails",
+          "when": "viewItem =~ /dms-document-.*/",
+          "group": "navigation"
+        },
+        {
+          "command": "dms.compareDocuments",
+          "when": "viewItem =~ /dms-document-.*/",
+          "group": "ai@1"
+        },
+        {
+          "command": "dms.extractData",
+          "when": "viewItem =~ /dms-document-.*/",
+          "group": "ai@2"
+        },
+        {
+          "command": "dms.chatWithDocument",
+          "when": "viewItem =~ /dms-document-.*/",
+          "group": "ai@3"
+        },
+        {
           "command": "dms.addTag",
           "when": "viewItem =~ /dms-document-.*/",
           "group": "tag@1"
@@ -207,6 +282,16 @@
           "command": "dms.removeTag",
           "when": "viewItem =~ /dms-document-.*/",
           "group": "tag@2"
+        },
+        {
+          "command": "dms.autoRename",
+          "when": "viewItem =~ /dms-document-.*/",
+          "group": "edit@1"
+        },
+        {
+          "command": "dms.autoTag",
+          "when": "viewItem =~ /dms-document-.*/",
+          "group": "edit@2"
         }
       ],
       "editor/title": [
@@ -225,9 +310,50 @@
         },
         {
           "command": "dms.aiChat"
+        },
+        {
+          "command": "dms.checkHealth"
+        },
+        {
+          "command": "dms.reindexAll"
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "dms.openDashboard",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d",
+        "when": "!editorFocus"
+      },
+      {
+        "command": "dms.semanticSearch",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s",
+        "when": "!editorFocus"
+      },
+      {
+        "command": "dms.refreshDocuments",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "focusedView == dms.documentsView"
+      },
+      {
+        "command": "dms.scanDocument",
+        "key": "ctrl+shift+o",
+        "mac": "cmd+shift+o"
+      },
+      {
+        "command": "dms.importDocuments",
+        "key": "ctrl+shift+i",
+        "mac": "cmd+shift+i"
+      },
+      {
+        "command": "dms.checkHealth",
+        "key": "ctrl+shift+h",
+        "mac": "cmd+shift+h"
+      }
+    ],
     "configuration": {
       "title": "DMSCode",
       "properties": {

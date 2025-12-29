@@ -1,0 +1,111 @@
+# DMSCode Backend Services
+# Eigenständige Backend-Services für DMSCode (basierend auf DMS)
+
+services:
+  # ═══════════════════════════════════════════════════════════
+  # OCR Service - Texterkennung für PDFs und Bilder
+  # ═══════════════════════════════════════════════════════════
+  ocr-service:
+    image: python:3.11-slim
+    container_name: dmscode-ocr
+    ports:
+      - "8510:8510"
+    volumes:
+      - ./backend/ocr:/app
+      - dmscode-temp:/tmp/ocr
+    working_dir: /app
+    command: >
+      bash -c "pip install fastapi uvicorn pytesseract pdf2image Pillow &&
+               apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-deu poppler-utils &&
+               uvicorn main:app --host 0.0.0.0 --port 8510"
+    environment:
+      - TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════
+  # Semantic Search Service - Vektor-basierte Suche
+  # ═══════════════════════════════════════════════════════════
+  search-service:
+    image: python:3.11-slim
+    container_name: dmscode-search
+    ports:
+      - "8520:8520"
+    volumes:
+      - ./backend/search:/app
+      - dmscode-embeddings:/data/embeddings
+    working_dir: /app
+    command: >
+      bash -c "pip install fastapi uvicorn sentence-transformers chromadb &&
+               uvicorn main:app --host 0.0.0.0 --port 8520"
+    environment:
+      - EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+      - CHROMADB_PATH=/data/embeddings
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # ═══════════════════════════════════════════════════════════
+  # LLM Gateway - Ollama Proxy mit Caching
+  # ═══════════════════════════════════════════════════════════
+  ollama:
+    image: ollama/ollama
+    container_name: dmscode-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - dmscode-ollama:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # ═══════════════════════════════════════════════════════════
+  # TTS Service - Text-to-Speech (Piper)
+  # ═══════════════════════════════════════════════════════════
+  tts-service:
+    image: python:3.11-slim
+    container_name: dmscode-tts
+    ports:
+      - "8505:8505"
+    volumes:
+      - ./backend/tts:/app
+      - dmscode-tts-models:/models
+    working_dir: /app
+    command: >
+      bash -c "pip install fastapi uvicorn piper-tts &&
+               uvicorn main:app --host 0.0.0.0 --port 8505"
+    environment:
+      - PIPER_MODELS_PATH=/models
+      - DEFAULT_VOICE=de_DE-thorsten-low
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════
+  # Redis - Cache für Sessions und Embeddings
+  # ═══════════════════════════════════════════════════════════
+  redis:
+    image: redis:alpine
+    container_name: dmscode-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - dmscode-redis:/data
+    restart: unless-stopped
+
+volumes:
+  dmscode-temp:
+  dmscode-embeddings:
+  dmscode-ollama:
+  dmscode-tts-models:
+  dmscode-redis:
+
+networks:
+  default:
+    name: dmscode-network

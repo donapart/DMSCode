@@ -56,13 +56,99 @@ npm run watch
 
 ## Backend-Services (optional)
 
+### Option 1: Lokal (Entwicklung)
+
 Für volle Funktionalität (OCR, Semantic Search, LLM):
 
 ```powershell
-# Backend aus dem DMS-Projekt starten
-cd D:\Projekte\DMS
+# Backend-Services lokal starten
+cd D:\Projekte\DMSCode
 docker-compose up -d
 ```
+
+### Option 2: Hetzner VPS (Produktion)
+
+Deploye das Backend auf einen Hetzner-Server für Remote-Zugriff:
+
+#### Vorbereitung
+
+1. **Env-Datei erstellen**
+```bash
+cp .env.hetzner.example .env.hetzner
+```
+
+2. **.env.hetzner anpassen**
+```bash
+DMS_SERVER_NAME=api.example.com  # Deine Domain oder Server-IP
+DMS_API_KEY=your-secret-key-here  # Optional: API-Key-Schutz
+EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+DEFAULT_VOICE=de_DE-thorsten-low
+```
+
+3. **SSH-Key bereitstellen**
+```bash
+# Linux/macOS: ~/.ssh/id_rsa oder ~/.ssh/id_ed25519
+# Windows: %USERPROFILE%\.ssh\id_rsa
+# Falls nicht vorhanden:
+ssh-keygen -t ed25519 -C "your@email.com"
+ssh-copy-id root@your-server-ip
+```
+
+#### Deployment
+
+**Linux/macOS:**
+```bash
+./deploy-hetzner.sh deploy
+```
+
+**Windows (PowerShell):**
+```powershell
+.\deploy-hetzner.ps1 -Command deploy -HetznerIP "49.13.150.177"
+```
+
+Das Skript:
+- Installiert Docker + Docker Compose auf dem Server (falls nicht vorhanden)
+- Überträgt alle Backend-Dateien + Docker-Compose-Konfiguration
+- Startet nginx als Reverse Proxy (nur Port 80 exponiert)
+- Lädt Ollama LLM-Modell herunter
+- Führt Health-Checks durch
+
+#### Nach dem Deployment
+
+**Testen:**
+```bash
+curl http://your-server-ip/health
+curl http://your-server-ip/ocr/health
+curl http://your-server-ip/search/health
+```
+
+**VS Code Extension konfigurieren:**
+```json
+{
+  "dms.llmEndpoint": "http://your-server-ip",
+  "dms.ocrEndpoint": "http://your-server-ip/ocr",
+  "dms.semanticSearchEndpoint": "http://your-server-ip/search",
+  "dms.apiKey": "your-secret-key-here"
+}
+```
+
+#### Weitere Befehle
+
+```bash
+# Status prüfen
+./deploy-hetzner.sh status
+
+# Logs anzeigen
+./deploy-hetzner.sh logs
+
+# Services neu starten
+./deploy-hetzner.sh restart
+
+# Services stoppen
+./deploy-hetzner.sh stop
+```
+
+**Wichtig:** Der Hetzner-Deploy nutzt `docker-compose.hetzner.yml` (nginx als Container, Services intern, nur Port 80 offen). Für lokale Entwicklung bleibt `docker-compose.yml` unberührt (alle Ports exponiert).
 
 ## Empfohlene VS Code Insiders Einstellungen
 

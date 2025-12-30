@@ -1,0 +1,94 @@
+# DMSCode Hetzner deployment
+# - Exposes only nginx on 80
+# - Services stay on the internal docker network
+# - Configure env via .env.hetzner (see .env.hetzner.example)
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: dmscode-nginx
+    ports:
+      - "80:80"
+    environment:
+      - DMS_SERVER_NAME=${DMS_SERVER_NAME}
+      - DMS_API_KEY=${DMS_API_KEY}
+    volumes:
+      - ./docker/nginx.hetzner.conf.template:/etc/nginx/templates/default.conf.template:ro
+    depends_on:
+      - ocr-service
+      - search-service
+      - tts-service
+      - ollama
+    restart: unless-stopped
+
+  ocr-service:
+    image: python:3.11-slim
+    container_name: dmscode-ocr
+    volumes:
+      - ./backend/ocr:/app
+      - dmscode-temp:/tmp/ocr
+    working_dir: /app
+    command: >
+      bash -c "pip install fastapi uvicorn pytesseract pdf2image Pillow &&
+               apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-deu poppler-utils &&
+               uvicorn main:app --host 0.0.0.0 --port 8510"
+    environment:
+      - TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
+    restart: unless-stopped
+
+  search-service:
+    image: python:3.11-slim
+    container_name: dmscode-search
+    volumes:
+      - ./backend/search:/app
+      - dmscode-embeddings:/data/embeddings
+    working_dir: /app
+    command: >
+      bash -c "pip install fastapi uvicorn sentence-transformers chromadb &&
+               uvicorn main:app --host 0.0.0.0 --port 8520"
+    environment:
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      - CHROMADB_PATH=/data/embeddings
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama
+    container_name: dmscode-ollama
+    volumes:
+      - dmscode-ollama:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+
+  tts-service:
+    image: python:3.11-slim
+    container_name: dmscode-tts
+    volumes:
+      - ./backend/tts:/app
+      - dmscode-tts-models:/models
+    working_dir: /app
+    command: >
+      bash -c "pip install fastapi uvicorn piper-tts &&
+               uvicorn main:app --host 0.0.0.0 --port 8505"
+    environment:
+      - PIPER_MODELS_PATH=/models
+      - DEFAULT_VOICE=${DEFAULT_VOICE:-de_DE-thorsten-low}
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: dmscode-redis
+    volumes:
+      - dmscode-redis:/data
+    restart: unless-stopped
+
+volumes:
+  dmscode-temp:
+  dmscode-embeddings:
+  dmscode-ollama:
+  dmscode-tts-models:
+  dmscode-redis:
+
+networks:
+  default:
+    name: dmscode-network

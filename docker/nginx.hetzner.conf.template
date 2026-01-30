@@ -5,6 +5,8 @@
 # - DMS_SERVER_NAME (e.g. api.example.com)
 # - DMS_API_KEY (optional; if set, requests must include X-API-KEY)
 
+map_hash_bucket_size 128;
+
 map $http_x_api_key $api_key_ok {
   default 0;
   "${DMS_API_KEY}" 1;

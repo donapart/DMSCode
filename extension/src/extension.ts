@@ -1,6 +1,7 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import { DmsAssistant } from "./chat/DmsAssistant";
+import { FlowEditorProvider } from "./editors/FlowEditorProvider";
 import { PdfViewerProvider } from "./editors/PdfViewerProvider";
 import { DocumentsTreeProvider } from "./providers/DocumentsTreeProvider";
 import { RecentTreeProvider } from "./providers/RecentTreeProvider";
@@ -43,6 +44,8 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   // ===== Tree View Providers =====
+  context.subscriptions.push(FlowEditorProvider.register(context));
+
   const documentsProvider = new DocumentsTreeProvider(dmsService);
   const tagsProvider = new TagsTreeProvider(dmsService);
   const recentProvider = new RecentTreeProvider(dmsService);

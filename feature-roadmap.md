@@ -177,6 +177,30 @@ Ziel: „tägliche Nutzung ohne Angst“.
 - [x] **Graph Visualisierung**: Webview Panel zeigt interaktiven Graph der Dokumenten-Beziehungen.
 - [ ] **Schema Evolution**: Automatische Schema-Anpassung bei neuen Entitäts-Typen durch LLM-Feedback.
 
+### 5.6 Milestone G: "DMS Automate" - Workflow Engine (DMSFlow)
+**Ziel:** Vom "Aktenschrank" zum "aktiven Assistenten". Regeln automatisieren manuelle Aufgaben.
+- [x] **Automation Service**: Python Backend-Service (`automation-service`) zur Ausführung von Rules.
+- [x] **Visual Flow Editor**: VS Code Custom Editor für `.dmsflow` Dateien (Alpha-Version / MVP).
+- [ ] **Triggers**: `OnDocumentImport`, `OnEntityExtracted`, `OnTagAdded`, `OnSchedule` (Cron).
+- [ ] **Conditions**: Prüfungen auf Metadaten, Tags, OCR-Text oder Graph-Entitäten (z.B. "Betrag > 500€").
+- [ ] **Actions**:
+  - *File Ops*: Move, Copy, Rename, Delete.
+  - *DMS Ops*: Add/Remove Tag, Re-OCR.
+  - *External*: HTTP Webhook, Send Email, Create Calendar Event.
+- [ ] **LLM Nodes**: "Ask AI" als Logik-Baustein in Flows (z.B. "Ist das Dokument dringend?").
+
+### 5.7 Milestone H: "DMS Anywhere" - Web & Mobile Client
+**Ziel:** Zugriff auf Dokumente ohne VS Code, ideal für Mobile/Tablet.
+**Infrastruktur & Sicherheit:**
+- [ ] **MinIO S3 Integration**: Docker Container auf Hetzner für sichere Dokumenten-Ablage („Daten-Tresor“), getrennt vom Code-Repo.
+- [ ] **Core Service API**: Zentraler `dms-core` Python Service, der `dms-index.json` liest/schreibt und S3-Zugriff kapselt.
+- **Web App (Next.js)**:
+  - [ ] **Dashboard**: Responsive Web-Variante des Dashboards.
+  - [ ] **Search UI**: Semantische Suche und Filter mobil verfügbar.
+  - [ ] **Document Viewer**: PDF Viewing im Browser (mobiloptimiert).
+  - [ ] **Mobile Upload**: "Scan per Kamera" PWA-Feature.
+- [ ] **Sync/Auth**: Simpler Auth-Layer (Basic Auth / JWT) für den Zugriff von außen.
+
 ---
 
 ## Anhang: Offene Fragen (für die nächste Iteration)

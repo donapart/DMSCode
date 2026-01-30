@@ -2,7 +2,7 @@
   "name": "dmscode",
   "displayName": "DMSCode - Document Management System",
   "description": "Verwandelt VS Code in ein vollständiges Document Management System mit OCR, Semantic Search, AI-Chat und mehr",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "publisher": "dmscode",
   "license": "MIT",
   "repository": {
@@ -232,6 +232,31 @@
         "command": "dms.reindexAll",
         "title": "DMS: Index neu aufbauen",
         "icon": "$(database)"
+      },
+      {
+        "command": "dms.smartAnalyze",
+        "title": "DMS: Smart-Analyse (Claude Tools)",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "dms.extractInvoice",
+        "title": "DMS: Rechnung analysieren (Tool Use)",
+        "icon": "$(receipt)"
+      },
+      {
+        "command": "dms.extractContract",
+        "title": "DMS: Vertrag analysieren (Tool Use)",
+        "icon": "$(law)"
+      },
+      {
+        "command": "dms.classifyDocument",
+        "title": "DMS: Dokument klassifizieren (Tool Use)",
+        "icon": "$(symbol-class)"
+      },
+      {
+        "command": "dms.deepAnalysis",
+        "title": "DMS: Tiefenanalyse (Extended Thinking)",
+        "icon": "$(lightbulb)"
       }
     ],
     "menus": {

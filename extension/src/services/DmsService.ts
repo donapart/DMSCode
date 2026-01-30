@@ -917,6 +917,120 @@ export class DmsService {
 
   // ===== LLM Integration =====
 
+  // Claude Tool Definitions for structured document analysis
+  private getClaudeTools() {
+    return [
+      {
+        name: "extract_invoice_data",
+        description: "Extract structured data from an invoice document",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            invoice_number: { type: "string", description: "Invoice number/ID" },
+            invoice_date: { type: "string", description: "Invoice date (YYYY-MM-DD)" },
+            due_date: { type: "string", description: "Payment due date" },
+            vendor_name: { type: "string", description: "Vendor/Seller company name" },
+            vendor_address: { type: "string", description: "Vendor address" },
+            customer_name: { type: "string", description: "Customer/Buyer name" },
+            total_amount: { type: "number", description: "Total invoice amount" },
+            currency: { type: "string", description: "Currency code (EUR, USD, etc.)" },
+            tax_amount: { type: "number", description: "Tax/VAT amount" },
+            line_items: { 
+              type: "array", 
+              items: {
+                type: "object",
+                properties: {
+                  description: { type: "string" },
+                  quantity: { type: "number" },
+                  unit_price: { type: "number" },
+                  total: { type: "number" }
+                }
+              }
+            },
+            iban: { type: "string", description: "Bank IBAN for payment" },
+            payment_reference: { type: "string", description: "Payment reference/Verwendungszweck" }
+          },
+          required: ["invoice_number", "total_amount", "currency"]
+        }
+      },
+      {
+        name: "extract_contract_data",
+        description: "Extract structured data from a contract document",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            contract_type: { type: "string", description: "Type of contract (Arbeitsvertrag, Mietvertrag, etc.)" },
+            party_a: { type: "string", description: "First contracting party" },
+            party_b: { type: "string", description: "Second contracting party" },
+            subject: { type: "string", description: "Contract subject/purpose" },
+            start_date: { type: "string", description: "Contract start date" },
+            end_date: { type: "string", description: "Contract end date (if applicable)" },
+            duration: { type: "string", description: "Contract duration" },
+            notice_period: { type: "string", description: "Termination notice period" },
+            monthly_value: { type: "number", description: "Monthly payment/value" },
+            total_value: { type: "number", description: "Total contract value" },
+            currency: { type: "string", description: "Currency" },
+            key_clauses: { 
+              type: "array", 
+              items: { type: "string" },
+              description: "Important contract clauses"
+            },
+            renewal_terms: { type: "string", description: "Auto-renewal terms" }
+          },
+          required: ["contract_type", "party_a", "party_b"]
+        }
+      },
+      {
+        name: "classify_document",
+        description: "Classify a document into categories and suggest tags",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            document_type: { 
+              type: "string", 
+              enum: ["invoice", "contract", "letter", "report", "receipt", "certificate", "id_document", "bank_statement", "insurance", "tax_document", "other"],
+              description: "Primary document type"
+            },
+            category: { type: "string", description: "Business category (Finanzen, Personal, Versicherung, etc.)" },
+            priority: { type: "string", enum: ["urgent", "normal", "archive"], description: "Document priority" },
+            suggested_tags: { type: "array", items: { type: "string" }, description: "Suggested tags for the document" },
+            requires_action: { type: "boolean", description: "Whether document requires follow-up action" },
+            action_deadline: { type: "string", description: "Deadline for action if applicable" },
+            summary: { type: "string", description: "One-sentence document summary" },
+            confidence: { type: "number", description: "Classification confidence 0-1" }
+          },
+          required: ["document_type", "category", "suggested_tags", "summary"]
+        }
+      },
+      {
+        name: "extract_entities",
+        description: "Extract named entities from document text",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            persons: { type: "array", items: { type: "string" }, description: "Person names found" },
+            organizations: { type: "array", items: { type: "string" }, description: "Company/organization names" },
+            dates: { type: "array", items: { type: "string" }, description: "Important dates (YYYY-MM-DD format)" },
+            amounts: { 
+              type: "array", 
+              items: { 
+                type: "object",
+                properties: {
+                  value: { type: "number" },
+                  currency: { type: "string" },
+                  context: { type: "string" }
+                }
+              }
+            },
+            locations: { type: "array", items: { type: "string" }, description: "Addresses and locations" },
+            references: { type: "array", items: { type: "string" }, description: "Reference numbers, IDs, etc." }
+          },
+          required: ["persons", "organizations", "dates"]
+        }
+      }
+    ];
+  }
+
   async chat(message: string, context?: string): Promise<string> {
     const provider = this.getConfig<string>("llmProvider") || "ollama";
 
@@ -1035,6 +1149,238 @@ export class DmsService {
         },
       );
     }
+  }
+
+  /**
+   * Claude Tool Use: Analyze document with structured output
+   * Uses Claude's function calling to extract structured data
+   */
+  async analyzeDocumentWithTools(
+    docId: string, 
+    toolName: "extract_invoice_data" | "extract_contract_data" | "classify_document" | "extract_entities"
+  ): Promise<Record<string, unknown>> {
+    const provider = this.getConfig<string>("llmProvider") || "ollama";
+    
+    if (provider !== "anthropic") {
+      throw new DmsError(
+        "Tool Use ist nur mit Anthropic verfügbar. Bitte setzen Sie llmProvider auf 'anthropic'.",
+        "LLM_ERROR"
+      );
+    }
+
+    const apiKey = this.getConfig<string>("anthropicApiKey");
+    if (!apiKey) {
+      throw new DmsError("Anthropic API Key nicht konfiguriert", "LLM_ERROR");
+    }
+
+    const doc = this.documentsCache.get(this.getPathFromId(docId));
+    if (!doc) {
+      throw new DmsError("Dokument nicht gefunden", "FILE_NOT_FOUND");
+    }
+
+    const text = doc.ocrText || (await this.runOcrFallback(vscode.Uri.file(doc.path)));
+    const tools = this.getClaudeTools();
+    const selectedTool = tools.find(t => t.name === toolName);
+    
+    if (!selectedTool) {
+      throw new DmsError(`Tool ${toolName} nicht gefunden`, "LLM_ERROR");
+    }
+
+    try {
+      const response = await axios.post(
+        "https://api.anthropic.com/v1/messages",
+        {
+          model: this.llmModel || "claude-3-haiku-20240307",
+          max_tokens: 4096,
+          tools: [selectedTool],
+          tool_choice: { type: "tool", name: toolName },
+          messages: [{
+            role: "user",
+            content: `Analysiere das folgende Dokument "${doc.name}" und extrahiere die strukturierten Daten:\n\n${text.substring(0, 8000)}`
+          }]
+        },
+        {
+          headers: {
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+          },
+          timeout: 120000,
+        }
+      );
+
+      interface ToolUseBlock {
+        type: "tool_use";
+        id: string;
+        name: string;
+        input: Record<string, unknown>;
+      }
+      
+      const toolUseBlock = (response.data.content as Array<{ type: string }>).find(
+        (block): block is ToolUseBlock => block.type === "tool_use"
+      );
+      
+      if (toolUseBlock) {
+        return toolUseBlock.input;
+      }
+      
+      throw new DmsError("Keine strukturierten Daten extrahiert", "LLM_ERROR");
+    } catch (error) {
+      if (error instanceof DmsError) throw error;
+      const axiosError = error as AxiosError;
+      throw new DmsError(
+        `Tool Use fehlgeschlagen: ${axiosError.message}`,
+        "LLM_ERROR"
+      );
+    }
+  }
+
+  /**
+   * Claude Extended Thinking: Deep analysis for complex documents
+   * Uses Claude's extended thinking for thorough multi-step reasoning
+   */
+  async analyzeWithExtendedThinking(
+    docId: string,
+    analysisType: "legal_review" | "financial_audit" | "risk_assessment" | "compliance_check"
+  ): Promise<{ thinking: string; analysis: string }> {
+    const provider = this.getConfig<string>("llmProvider") || "ollama";
+    
+    if (provider !== "anthropic") {
+      throw new DmsError(
+        "Extended Thinking ist nur mit Anthropic verfügbar. Bitte setzen Sie llmProvider auf 'anthropic'.",
+        "LLM_ERROR"
+      );
+    }
+
+    const apiKey = this.getConfig<string>("anthropicApiKey");
+    if (!apiKey) {
+      throw new DmsError("Anthropic API Key nicht konfiguriert", "LLM_ERROR");
+    }
+
+    const doc = this.documentsCache.get(this.getPathFromId(docId));
+    if (!doc) {
+      throw new DmsError("Dokument nicht gefunden", "FILE_NOT_FOUND");
+    }
+
+    const text = doc.ocrText || (await this.runOcrFallback(vscode.Uri.file(doc.path)));
+
+    const analysisPrompts: Record<string, string> = {
+      legal_review: `Du bist ein erfahrener Rechtsanwalt. Führe eine gründliche rechtliche Prüfung dieses Dokuments durch:
+        1. Identifiziere alle rechtlich relevanten Klauseln
+        2. Prüfe auf potenzielle rechtliche Risiken
+        3. Bewerte die Verbindlichkeit der Vereinbarungen
+        4. Markiere unklare oder problematische Formulierungen
+        5. Gib Empfehlungen für Nachverhandlungen`,
+      
+      financial_audit: `Du bist ein erfahrener Wirtschaftsprüfer. Analysiere dieses Finanzdokument:
+        1. Prüfe alle Zahlen auf Plausibilität
+        2. Identifiziere Abweichungen oder Ungereimtheiten
+        3. Berechne relevante Kennzahlen
+        4. Vergleiche mit branchenüblichen Standards
+        5. Erstelle eine Zusammenfassung der finanziellen Lage`,
+      
+      risk_assessment: `Du bist ein Risikomanager. Erstelle eine Risikoanalyse für dieses Dokument:
+        1. Identifiziere alle potenziellen Risiken
+        2. Bewerte Eintrittswahrscheinlichkeit und Auswirkung
+        3. Priorisiere die Risiken (Kritisch, Hoch, Mittel, Niedrig)
+        4. Schlage Mitigationsmaßnahmen vor
+        5. Erstelle eine Risikomatrix`,
+      
+      compliance_check: `Du bist ein Compliance-Experte. Prüfe dieses Dokument auf Regelkonformität:
+        1. Identifiziere relevante Vorschriften (DSGVO, HGB, etc.)
+        2. Prüfe die Einhaltung der Dokumentationspflichten
+        3. Markiere Compliance-Verstöße oder -Lücken
+        4. Bewerte das Compliance-Risiko
+        5. Gib Handlungsempfehlungen`
+    };
+
+    try {
+      const response = await axios.post(
+        "https://api.anthropic.com/v1/messages",
+        {
+          model: "claude-3-5-sonnet-20241022", // Extended thinking requires Sonnet or Opus
+          max_tokens: 16000,
+          thinking: {
+            type: "enabled",
+            budget_tokens: 10000 // Allow up to 10k tokens for thinking
+          },
+          messages: [{
+            role: "user",
+            content: `${analysisPrompts[analysisType]}\n\nDokument: ${doc.name}\n\n${text.substring(0, 12000)}`
+          }]
+        },
+        {
+          headers: {
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+          },
+          timeout: 300000, // 5 minutes for complex analysis
+        }
+      );
+
+      interface ContentBlock {
+        type: "thinking" | "text";
+        thinking?: string;
+        text?: string;
+      }
+      
+      const content = response.data.content as ContentBlock[];
+      const thinkingBlock = content.find(b => b.type === "thinking");
+      const textBlock = content.find(b => b.type === "text");
+
+      return {
+        thinking: thinkingBlock?.thinking || "",
+        analysis: textBlock?.text || ""
+      };
+    } catch (error) {
+      if (error instanceof DmsError) throw error;
+      const axiosError = error as AxiosError;
+      
+      // Fallback to regular analysis if extended thinking not available
+      if (axiosError.response?.status === 400) {
+        const regularAnalysis = await this.chat(
+          `${analysisPrompts[analysisType]}\n\nDokument: ${doc.name}`,
+          text.substring(0, 8000)
+        );
+        return {
+          thinking: "(Extended Thinking nicht verfügbar - Standard-Analyse verwendet)",
+          analysis: regularAnalysis
+        };
+      }
+      
+      throw new DmsError(
+        `Extended Thinking fehlgeschlagen: ${axiosError.message}`,
+        "LLM_ERROR"
+      );
+    }
+  }
+
+  /**
+   * Smart Document Processing: Combines Tool Use for extraction + classification
+   */
+  async smartProcessDocument(docId: string): Promise<{
+    classification: Record<string, unknown>;
+    entities: Record<string, unknown>;
+    specificData?: Record<string, unknown>;
+  }> {
+    // Step 1: Classify the document
+    const classification = await this.analyzeDocumentWithTools(docId, "classify_document");
+    
+    // Step 2: Extract entities
+    const entities = await this.analyzeDocumentWithTools(docId, "extract_entities");
+    
+    // Step 3: Extract type-specific data if applicable
+    let specificData: Record<string, unknown> | undefined;
+    const docType = classification.document_type as string;
+    
+    if (docType === "invoice") {
+      specificData = await this.analyzeDocumentWithTools(docId, "extract_invoice_data");
+    } else if (docType === "contract") {
+      specificData = await this.analyzeDocumentWithTools(docId, "extract_contract_data");
+    }
+
+    return { classification, entities, specificData };
   }
 
   async summarize(text: string): Promise<string> {

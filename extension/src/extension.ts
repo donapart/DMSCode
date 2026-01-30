@@ -279,176 +279,251 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   // ===== Claude Tool Use & Extended Thinking Commands =====
-  
+
   // Smart Analyze (combines classification + entity extraction)
   context.subscriptions.push(
-    vscode.commands.registerCommand("dms.smartAnalyze", async (uri?: vscode.Uri) => {
-      const docId = uri?.fsPath || await selectDocument("Smart-Analyse durchführen");
-      if (!docId) return;
+    vscode.commands.registerCommand(
+      "dms.smartAnalyze",
+      async (uri?: vscode.Uri) => {
+        const docId =
+          uri?.fsPath || (await selectDocument("Smart-Analyse durchführen"));
+        if (!docId) return;
 
-      await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: "Smart-Analyse läuft..." },
-        async () => {
-          try {
-            const result = await dmsService.smartProcessDocument(docId);
-            
-            // Show results in a new document
-            const content = `# Smart-Analyse Ergebnis\n\n` +
-              `## Klassifizierung\n\`\`\`json\n${JSON.stringify(result.classification, null, 2)}\n\`\`\`\n\n` +
-              `## Entitäten\n\`\`\`json\n${JSON.stringify(result.entities, null, 2)}\n\`\`\`\n\n` +
-              (result.specificData ? `## Spezifische Daten\n\`\`\`json\n${JSON.stringify(result.specificData, null, 2)}\n\`\`\`\n` : "");
-            
-            const doc = await vscode.workspace.openTextDocument({ content, language: "markdown" });
-            await vscode.window.showTextDocument(doc);
-            
-            // Auto-apply suggested tags
-            const suggestedTags = (result.classification.suggested_tags as string[]) || [];
-            if (suggestedTags.length > 0) {
-              const apply = await vscode.window.showInformationMessage(
-                `${suggestedTags.length} Tags vorgeschlagen: ${suggestedTags.join(", ")}`,
-                "Tags anwenden", "Überspringen"
-              );
-              if (apply === "Tags anwenden") {
-                for (const tag of suggestedTags) {
-                  await dmsService.addTagToDocument(docId, tag);
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: "Smart-Analyse läuft...",
+          },
+          async () => {
+            try {
+              const result = await dmsService.smartProcessDocument(docId);
+
+              // Show results in a new document
+              const content =
+                `# Smart-Analyse Ergebnis\n\n` +
+                `## Klassifizierung\n\`\`\`json\n${JSON.stringify(result.classification, null, 2)}\n\`\`\`\n\n` +
+                `## Entitäten\n\`\`\`json\n${JSON.stringify(result.entities, null, 2)}\n\`\`\`\n\n` +
+                (result.specificData
+                  ? `## Spezifische Daten\n\`\`\`json\n${JSON.stringify(result.specificData, null, 2)}\n\`\`\`\n`
+                  : "");
+
+              const doc = await vscode.workspace.openTextDocument({
+                content,
+                language: "markdown",
+              });
+              await vscode.window.showTextDocument(doc);
+
+              // Auto-apply suggested tags
+              const suggestedTags =
+                (result.classification.suggested_tags as string[]) || [];
+              if (suggestedTags.length > 0) {
+                const apply = await vscode.window.showInformationMessage(
+                  `${suggestedTags.length} Tags vorgeschlagen: ${suggestedTags.join(", ")}`,
+                  "Tags anwenden",
+                  "Überspringen",
+                );
+                if (apply === "Tags anwenden") {
+                  for (const tag of suggestedTags) {
+                    await dmsService.addTagToDocument(docId, tag);
+                  }
+                  vscode.window.showInformationMessage(
+                    "Tags wurden angewendet!",
+                  );
                 }
-                vscode.window.showInformationMessage("Tags wurden angewendet!");
               }
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Smart-Analyse fehlgeschlagen: ${error}`,
+              );
             }
-          } catch (error) {
-            vscode.window.showErrorMessage(`Smart-Analyse fehlgeschlagen: ${error}`);
-          }
-        }
-      );
-    }),
+          },
+        );
+      },
+    ),
   );
 
   // Extract Invoice Data
   context.subscriptions.push(
-    vscode.commands.registerCommand("dms.extractInvoice", async (uri?: vscode.Uri) => {
-      const docId = uri?.fsPath || await selectDocument("Rechnung analysieren");
-      if (!docId) return;
+    vscode.commands.registerCommand(
+      "dms.extractInvoice",
+      async (uri?: vscode.Uri) => {
+        const docId =
+          uri?.fsPath || (await selectDocument("Rechnung analysieren"));
+        if (!docId) return;
 
-      await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: "Rechnung wird analysiert..." },
-        async () => {
-          try {
-            const result = await dmsService.analyzeDocumentWithTools(docId, "extract_invoice_data");
-            const doc = await vscode.workspace.openTextDocument({ 
-              content: JSON.stringify(result, null, 2), 
-              language: "json" 
-            });
-            await vscode.window.showTextDocument(doc);
-          } catch (error) {
-            vscode.window.showErrorMessage(`Rechnungsanalyse fehlgeschlagen: ${error}`);
-          }
-        }
-      );
-    }),
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: "Rechnung wird analysiert...",
+          },
+          async () => {
+            try {
+              const result = await dmsService.analyzeDocumentWithTools(
+                docId,
+                "extract_invoice_data",
+              );
+              const doc = await vscode.workspace.openTextDocument({
+                content: JSON.stringify(result, null, 2),
+                language: "json",
+              });
+              await vscode.window.showTextDocument(doc);
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Rechnungsanalyse fehlgeschlagen: ${error}`,
+              );
+            }
+          },
+        );
+      },
+    ),
   );
 
   // Extract Contract Data
   context.subscriptions.push(
-    vscode.commands.registerCommand("dms.extractContract", async (uri?: vscode.Uri) => {
-      const docId = uri?.fsPath || await selectDocument("Vertrag analysieren");
-      if (!docId) return;
+    vscode.commands.registerCommand(
+      "dms.extractContract",
+      async (uri?: vscode.Uri) => {
+        const docId =
+          uri?.fsPath || (await selectDocument("Vertrag analysieren"));
+        if (!docId) return;
 
-      await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: "Vertrag wird analysiert..." },
-        async () => {
-          try {
-            const result = await dmsService.analyzeDocumentWithTools(docId, "extract_contract_data");
-            const doc = await vscode.workspace.openTextDocument({ 
-              content: JSON.stringify(result, null, 2), 
-              language: "json" 
-            });
-            await vscode.window.showTextDocument(doc);
-          } catch (error) {
-            vscode.window.showErrorMessage(`Vertragsanalyse fehlgeschlagen: ${error}`);
-          }
-        }
-      );
-    }),
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: "Vertrag wird analysiert...",
+          },
+          async () => {
+            try {
+              const result = await dmsService.analyzeDocumentWithTools(
+                docId,
+                "extract_contract_data",
+              );
+              const doc = await vscode.workspace.openTextDocument({
+                content: JSON.stringify(result, null, 2),
+                language: "json",
+              });
+              await vscode.window.showTextDocument(doc);
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Vertragsanalyse fehlgeschlagen: ${error}`,
+              );
+            }
+          },
+        );
+      },
+    ),
   );
 
   // Classify Document
   context.subscriptions.push(
-    vscode.commands.registerCommand("dms.classifyDocument", async (uri?: vscode.Uri) => {
-      const docId = uri?.fsPath || await selectDocument("Dokument klassifizieren");
-      if (!docId) return;
+    vscode.commands.registerCommand(
+      "dms.classifyDocument",
+      async (uri?: vscode.Uri) => {
+        const docId =
+          uri?.fsPath || (await selectDocument("Dokument klassifizieren"));
+        if (!docId) return;
 
-      await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: "Dokument wird klassifiziert..." },
-        async () => {
-          try {
-            const result = await dmsService.analyzeDocumentWithTools(docId, "classify_document");
-            
-            vscode.window.showInformationMessage(
-              `Typ: ${result.document_type}\nKategorie: ${result.category}\nTags: ${(result.suggested_tags as string[])?.join(", ")}`
-            );
-          } catch (error) {
-            vscode.window.showErrorMessage(`Klassifizierung fehlgeschlagen: ${error}`);
-          }
-        }
-      );
-    }),
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: "Dokument wird klassifiziert...",
+          },
+          async () => {
+            try {
+              const result = await dmsService.analyzeDocumentWithTools(
+                docId,
+                "classify_document",
+              );
+
+              vscode.window.showInformationMessage(
+                `Typ: ${result.document_type}\nKategorie: ${result.category}\nTags: ${(result.suggested_tags as string[])?.join(", ")}`,
+              );
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Klassifizierung fehlgeschlagen: ${error}`,
+              );
+            }
+          },
+        );
+      },
+    ),
   );
 
   // Deep Analysis with Extended Thinking
   context.subscriptions.push(
-    vscode.commands.registerCommand("dms.deepAnalysis", async (uri?: vscode.Uri) => {
-      const docId = uri?.fsPath || await selectDocument("Tiefenanalyse durchführen");
-      if (!docId) return;
+    vscode.commands.registerCommand(
+      "dms.deepAnalysis",
+      async (uri?: vscode.Uri) => {
+        const docId =
+          uri?.fsPath || (await selectDocument("Tiefenanalyse durchführen"));
+        if (!docId) return;
 
-      const analysisType = await vscode.window.showQuickPick([
-        { label: "$(law) Rechtliche Prüfung", value: "legal_review" },
-        { label: "$(graph) Finanz-Audit", value: "financial_audit" },
-        { label: "$(warning) Risikoanalyse", value: "risk_assessment" },
-        { label: "$(checklist) Compliance-Check", value: "compliance_check" },
-      ], { placeHolder: "Analyseart wählen" });
+        const analysisType = await vscode.window.showQuickPick(
+          [
+            { label: "$(law) Rechtliche Prüfung", value: "legal_review" },
+            { label: "$(graph) Finanz-Audit", value: "financial_audit" },
+            { label: "$(warning) Risikoanalyse", value: "risk_assessment" },
+            {
+              label: "$(checklist) Compliance-Check",
+              value: "compliance_check",
+            },
+          ],
+          { placeHolder: "Analyseart wählen" },
+        );
 
-      if (!analysisType) return;
+        if (!analysisType) return;
 
-      await vscode.window.withProgress(
-        { 
-          location: vscode.ProgressLocation.Notification, 
-          title: "Tiefenanalyse läuft (Extended Thinking)...",
-          cancellable: false
-        },
-        async () => {
-          try {
-            const result = await dmsService.analyzeWithExtendedThinking(
-              docId, 
-              analysisType.value as "legal_review" | "financial_audit" | "risk_assessment" | "compliance_check"
-            );
-            
-            const content = `# Tiefenanalyse: ${analysisType.label}\n\n` +
-              `## Denkprozess (Extended Thinking)\n${result.thinking}\n\n` +
-              `---\n\n## Analyse-Ergebnis\n${result.analysis}`;
-            
-            const doc = await vscode.workspace.openTextDocument({ content, language: "markdown" });
-            await vscode.window.showTextDocument(doc);
-          } catch (error) {
-            vscode.window.showErrorMessage(`Tiefenanalyse fehlgeschlagen: ${error}`);
-          }
-        }
-      );
-    }),
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: "Tiefenanalyse läuft (Extended Thinking)...",
+            cancellable: false,
+          },
+          async () => {
+            try {
+              const result = await dmsService.analyzeWithExtendedThinking(
+                docId,
+                analysisType.value as
+                  | "legal_review"
+                  | "financial_audit"
+                  | "risk_assessment"
+                  | "compliance_check",
+              );
+
+              const content =
+                `# Tiefenanalyse: ${analysisType.label}\n\n` +
+                `## Denkprozess (Extended Thinking)\n${result.thinking}\n\n` +
+                `---\n\n## Analyse-Ergebnis\n${result.analysis}`;
+
+              const doc = await vscode.workspace.openTextDocument({
+                content,
+                language: "markdown",
+              });
+              await vscode.window.showTextDocument(doc);
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Tiefenanalyse fehlgeschlagen: ${error}`,
+              );
+            }
+          },
+        );
+      },
+    ),
   );
 
   // Helper function for document selection
   async function selectDocument(action: string): Promise<string | undefined> {
     const docs = await dmsService.getDocuments();
-    const items = docs.map(doc => ({
+    const items = docs.map((doc) => ({
       label: doc.name,
       description: doc.path,
-      docId: doc.path
+      docId: doc.path,
     }));
-    
+
     const selected = await vscode.window.showQuickPick(items, {
-      placeHolder: `Dokument für "${action}" auswählen`
+      placeHolder: `Dokument für "${action}" auswählen`,
     });
-    
+
     return selected?.docId;
   }
 

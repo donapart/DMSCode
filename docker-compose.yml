@@ -156,8 +156,51 @@ services:
       - ./backend/automation:/app
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-3-haiku-20240307}
+      - OLLAMA_URL=http://ollama:11434
+      - GRAPH_SERVICE_URL=http://graph-service:8530
     depends_on:
       - redis
+      - graph-service
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════
+  # Storage Service - S3-Compatible Document Storage (MinIO)
+  # ═══════════════════════════════════════════════════════════
+  storage-service:
+    build:
+      context: ./backend/storage
+      dockerfile: Dockerfile
+    container_name: dmscode-storage
+    ports:
+      - "8550:8550"
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-dmscode}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-dmscode123}
+      - MINIO_SECURE=false
+      - DEFAULT_BUCKET=documents
+    depends_on:
+      - minio
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════
+  # MinIO - S3-Compatible Object Storage
+  # ═══════════════════════════════════════════════════════════
+  minio:
+    image: minio/minio
+    container_name: dmscode-minio
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Console
+    command: server /data --console-address ":9001"
+    volumes:
+      - dmscode-minio:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-dmscode}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-dmscode123}
     restart: unless-stopped
 
 volumes:
@@ -167,6 +210,7 @@ volumes:
   dmscode-tts-models:
   dmscode-redis:
   dmscode-surrealdb:
+  dmscode-minio:
 
 networks:
   default:

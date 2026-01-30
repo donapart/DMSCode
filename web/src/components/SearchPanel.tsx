@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Search, FileText, Sparkles, Clock, Tag } from 'lucide-react';
+import { Search, Sparkles, Tag } from "lucide-react";
+import { useState } from "react";
 
 interface SearchResult {
   document: {
@@ -15,7 +15,7 @@ interface SearchResult {
 }
 
 export function SearchPanel() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -26,14 +26,14 @@ export function SearchPanel() {
 
     setLoading(true);
     setSearched(true);
-    
+
     try {
-      const response = await fetch('/api/search/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, top_k: 10 })
+      const response = await fetch("/api/search/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, top_k: 10 }),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setResults(data.results || []);
@@ -41,7 +41,7 @@ export function SearchPanel() {
         setResults([]);
       }
     } catch (err) {
-      console.error('Search failed:', err);
+      console.error("Search failed:", err);
       setResults([]);
     } finally {
       setLoading(false);
@@ -49,10 +49,10 @@ export function SearchPanel() {
   };
 
   const exampleQueries = [
-    'Rechnungen von 2024',
-    'Vertrag mit Kündigungsfrist',
-    'Dokumente über 500€',
-    'Steuererklärung'
+    "Rechnungen von 2024",
+    "Vertrag mit Kündigungsfrist",
+    "Dokumente über 500€",
+    "Steuererklärung",
   ];
 
   return (
@@ -86,7 +86,7 @@ export function SearchPanel() {
             disabled={loading}
             className="px-8 py-4 bg-dms-primary text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
           >
-            {loading ? 'Suche...' : 'Suchen'}
+            {loading ? "Suche..." : "Suchen"}
           </button>
         </div>
       </form>
@@ -114,16 +114,20 @@ export function SearchPanel() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-dms-secondary">
-              {results.length} {results.length === 1 ? 'Ergebnis' : 'Ergebnisse'} für "{query}"
+              {results.length}{" "}
+              {results.length === 1 ? "Ergebnis" : "Ergebnisse"} für "{query}"
             </p>
           </div>
 
           {results.length === 0 && !loading && (
             <div className="text-center py-12 bg-gray-50 rounded-xl">
               <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-dms-dark font-medium">Keine Ergebnisse gefunden</p>
+              <p className="text-dms-dark font-medium">
+                Keine Ergebnisse gefunden
+              </p>
               <p className="text-dms-secondary text-sm mt-1">
-                Versuchen Sie andere Suchbegriffe oder laden Sie mehr Dokumente hoch
+                Versuchen Sie andere Suchbegriffe oder laden Sie mehr Dokumente
+                hoch
               </p>
             </div>
           )}
@@ -145,9 +149,9 @@ export function SearchPanel() {
                         {Math.round(result.score * 100)}% Relevanz
                       </span>
                     </div>
-                    
+
                     <p className="text-dms-secondary text-sm mt-2 line-clamp-2">
-                      {result.snippet || 'Keine Vorschau verfügbar'}
+                      {result.snippet || "Keine Vorschau verfügbar"}
                     </p>
 
                     {result.document.tags?.length > 0 && (
@@ -155,7 +159,7 @@ export function SearchPanel() {
                         <Tag className="w-4 h-4 text-dms-secondary" />
                         <div className="flex gap-1">
                           {result.document.tags.slice(0, 3).map((tag, i) => (
-                            <span 
+                            <span
                               key={i}
                               className="text-xs px-2 py-0.5 bg-gray-100 text-dms-secondary rounded-full"
                             >

@@ -45,10 +45,18 @@ check_service "OCR Service" "http://localhost:8510/health"
 check_service "Search Service" "http://localhost:8520/health"
 check_service "Graph Service" "http://localhost:8530/health"
 check_service "Automation Service" "http://localhost:8540/health"
+check_service "Storage Service" "http://localhost:8550/health"
+check_service "Web Dashboard" "http://localhost:3000"
 
 echo ""
 echo "📊 Container Status:"
 docker compose -f docker-compose.hetzner.yml ps
+
+echo ""
+echo "🌐 Services available at:"
+echo "   - Web Dashboard: http://\$DMS_SERVER_NAME/"
+echo "   - API Health: http://\$DMS_SERVER_NAME/health"
+echo "   - MinIO Console: http://localhost:9001 (local only)"
 
 echo ""
 echo "✅ Deployment complete!"

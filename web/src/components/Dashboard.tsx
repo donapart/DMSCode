@@ -1,6 +1,15 @@
-'use client';
+"use client";
 
-import { FileText, Search, Upload, Tag, Clock, HardDrive, TrendingUp, Sparkles } from 'lucide-react';
+import {
+  Clock,
+  FileText,
+  HardDrive,
+  Search,
+  Sparkles,
+  Tag,
+  TrendingUp,
+  Upload,
+} from "lucide-react";
 
 interface DashboardProps {
   stats: {
@@ -9,56 +18,56 @@ interface DashboardProps {
     totalTags: number;
     storageUsed: string;
   };
-  onNavigate: (view: 'dashboard' | 'documents' | 'search' | 'upload') => void;
+  onNavigate: (view: "dashboard" | "documents" | "search" | "upload") => void;
 }
 
 export function Dashboard({ stats, onNavigate }: DashboardProps) {
   const statCards = [
-    { 
-      label: 'Dokumente', 
-      value: stats.totalDocuments, 
-      icon: FileText, 
-      color: 'bg-blue-500',
-      onClick: () => onNavigate('documents')
+    {
+      label: "Dokumente",
+      value: stats.totalDocuments,
+      icon: FileText,
+      color: "bg-blue-500",
+      onClick: () => onNavigate("documents"),
     },
-    { 
-      label: 'Diese Woche', 
-      value: stats.recentDocuments, 
-      icon: Clock, 
-      color: 'bg-green-500' 
+    {
+      label: "Diese Woche",
+      value: stats.recentDocuments,
+      icon: Clock,
+      color: "bg-green-500",
     },
-    { 
-      label: 'Tags', 
-      value: stats.totalTags, 
-      icon: Tag, 
-      color: 'bg-purple-500' 
+    {
+      label: "Tags",
+      value: stats.totalTags,
+      icon: Tag,
+      color: "bg-purple-500",
     },
-    { 
-      label: 'Speicher', 
-      value: stats.storageUsed, 
-      icon: HardDrive, 
-      color: 'bg-orange-500' 
+    {
+      label: "Speicher",
+      value: stats.storageUsed,
+      icon: HardDrive,
+      color: "bg-orange-500",
     },
   ];
 
   const quickActions = [
-    { 
-      label: 'Dokument hochladen', 
-      icon: Upload, 
-      color: 'bg-dms-primary hover:bg-blue-700',
-      onClick: () => onNavigate('upload')
+    {
+      label: "Dokument hochladen",
+      icon: Upload,
+      color: "bg-dms-primary hover:bg-blue-700",
+      onClick: () => onNavigate("upload"),
     },
-    { 
-      label: 'Suche starten', 
-      icon: Search, 
-      color: 'bg-dms-secondary hover:bg-slate-600',
-      onClick: () => onNavigate('search')
+    {
+      label: "Suche starten",
+      icon: Search,
+      color: "bg-dms-secondary hover:bg-slate-600",
+      onClick: () => onNavigate("search"),
     },
-    { 
-      label: 'AI-Analyse', 
-      icon: Sparkles, 
-      color: 'bg-dms-accent hover:bg-amber-600',
-      onClick: () => alert('AI-Analyse kommt bald!')
+    {
+      label: "AI-Analyse",
+      icon: Sparkles,
+      color: "bg-dms-accent hover:bg-amber-600",
+      onClick: () => alert("AI-Analyse kommt bald!"),
     },
   ];
 
@@ -107,7 +116,7 @@ export function Dashboard({ stats, onNavigate }: DashboardProps) {
               onClick={stat.onClick}
               className={`
                 bg-white rounded-xl p-6 shadow-sm card-hover
-                ${stat.onClick ? 'cursor-pointer' : ''}
+                ${stat.onClick ? "cursor-pointer" : ""}
               `}
             >
               <div className="flex items-center justify-between">
@@ -137,7 +146,8 @@ export function Dashboard({ stats, onNavigate }: DashboardProps) {
           <div className="space-y-3">
             {stats.totalDocuments === 0 ? (
               <p className="text-dms-secondary text-sm">
-                Noch keine Dokumente vorhanden. Laden Sie Ihr erstes Dokument hoch!
+                Noch keine Dokumente vorhanden. Laden Sie Ihr erstes Dokument
+                hoch!
               </p>
             ) : (
               <p className="text-dms-secondary text-sm">

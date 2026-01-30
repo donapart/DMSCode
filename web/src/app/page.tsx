@@ -1,36 +1,31 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { 
-  FileText, 
-  Search, 
-  Upload, 
-  Tag, 
-  Calendar, 
-  BarChart3, 
-  Settings,
-  Menu,
-  X,
-  Home,
+import { Dashboard } from "@/components/Dashboard";
+import { DocumentList } from "@/components/DocumentList";
+import { SearchPanel } from "@/components/SearchPanel";
+import { UploadPanel } from "@/components/UploadPanel";
+import {
+  FileText,
   FolderOpen,
-  Clock,
-  Sparkles
-} from 'lucide-react';
-import { Dashboard } from '@/components/Dashboard';
-import { DocumentList } from '@/components/DocumentList';
-import { SearchPanel } from '@/components/SearchPanel';
-import { UploadPanel } from '@/components/UploadPanel';
+  Home,
+  Menu,
+  Search,
+  Sparkles,
+  Upload,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
-type View = 'dashboard' | 'documents' | 'search' | 'upload';
+type View = "dashboard" | "documents" | "search" | "upload";
 
 export default function HomePage() {
-  const [currentView, setCurrentView] = useState<View>('dashboard');
+  const [currentView, setCurrentView] = useState<View>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState({
     totalDocuments: 0,
     recentDocuments: 0,
     totalTags: 0,
-    storageUsed: '0 MB'
+    storageUsed: "0 MB",
   });
 
   useEffect(() => {
@@ -41,10 +36,13 @@ export default function HomePage() {
   const fetchStats = async () => {
     try {
       // Try to get documents from storage service
-      const response = await fetch('/api/storage/objects');
+      const response = await fetch("/api/storage/objects");
       if (response.ok) {
         const objects = await response.json();
-        const totalSize = objects.reduce((acc: number, obj: any) => acc + (obj.size || 0), 0);
+        const totalSize = objects.reduce(
+          (acc: number, obj: any) => acc + (obj.size || 0),
+          0,
+        );
         setStats({
           totalDocuments: objects.length,
           recentDocuments: objects.filter((o: any) => {
@@ -53,38 +51,38 @@ export default function HomePage() {
             return date > weekAgo;
           }).length,
           totalTags: 0,
-          storageUsed: formatBytes(totalSize)
+          storageUsed: formatBytes(totalSize),
         });
       }
     } catch (error) {
-      console.log('Stats fetch failed, using defaults');
+      console.log("Stats fetch failed, using defaults");
     }
   };
 
   const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'documents', label: 'Dokumente', icon: FolderOpen },
-    { id: 'search', label: 'Suche', icon: Search },
-    { id: 'upload', label: 'Upload', icon: Upload },
+    { id: "dashboard", label: "Dashboard", icon: Home },
+    { id: "documents", label: "Dokumente", icon: FolderOpen },
+    { id: "search", label: "Suche", icon: Search },
+    { id: "upload", label: "Upload", icon: Upload },
   ];
 
   const renderContent = () => {
     switch (currentView) {
-      case 'dashboard':
+      case "dashboard":
         return <Dashboard stats={stats} onNavigate={setCurrentView} />;
-      case 'documents':
+      case "documents":
         return <DocumentList />;
-      case 'search':
+      case "search":
         return <SearchPanel />;
-      case 'upload':
+      case "upload":
         return <UploadPanel onUploadComplete={fetchStats} />;
       default:
         return <Dashboard stats={stats} onNavigate={setCurrentView} />;
@@ -99,23 +97,29 @@ export default function HomePage() {
           <FileText className="w-6 h-6 text-dms-primary" />
           <span className="font-bold text-lg">DMSCode</span>
         </div>
-        <button 
+        <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 hover:bg-white/10 rounded-lg"
         >
-          {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {sidebarOpen ? (
+            <X className="w-6 h-6" />
+          ) : (
+            <Menu className="w-6 h-6" />
+          )}
         </button>
       </header>
 
       {/* Sidebar */}
-      <aside className={`
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      <aside
+        className={`
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         md:translate-x-0
         fixed md:static inset-y-0 left-0 z-50
         w-64 bg-dms-dark text-white
         transition-transform duration-300 ease-in-out
         flex flex-col
-      `}>
+      `}
+      >
         {/* Logo */}
         <div className="hidden md:flex items-center gap-3 p-6 border-b border-white/10">
           <FileText className="w-8 h-8 text-dms-primary" />
@@ -140,9 +144,10 @@ export default function HomePage() {
                 className={`
                   w-full flex items-center gap-3 px-4 py-3 rounded-lg
                   transition-all duration-200
-                  ${isActive 
-                    ? 'bg-dms-primary text-white' 
-                    : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                  ${
+                    isActive
+                      ? "bg-dms-primary text-white"
+                      : "text-gray-300 hover:bg-white/10 hover:text-white"
                   }
                 `}
               >
@@ -164,16 +169,14 @@ export default function HomePage() {
 
       {/* Overlay for mobile */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        {renderContent()}
-      </main>
+      <main className="flex-1 overflow-auto">{renderContent()}</main>
     </div>
   );
 }

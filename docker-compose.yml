@@ -193,8 +193,8 @@ services:
     image: minio/minio
     container_name: dmscode-minio
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # Console
+      - "9000:9000" # S3 API
+      - "9001:9001" # Console
     command: server /data --console-address ":9001"
     volumes:
       - dmscode-minio:/data

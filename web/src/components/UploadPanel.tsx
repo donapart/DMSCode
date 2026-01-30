@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useRef, useCallback } from 'react';
-import { Upload, FileText, X, Check, AlertCircle, Camera } from 'lucide-react';
+import { AlertCircle, Camera, Check, Upload, X } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 
 interface UploadPanelProps {
   onUploadComplete?: () => void;
@@ -9,7 +9,7 @@ interface UploadPanelProps {
 
 interface UploadFile {
   file: File;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: "pending" | "uploading" | "success" | "error";
   progress: number;
   error?: string;
 }
@@ -17,15 +17,15 @@ interface UploadFile {
 export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [folder, setFolder] = useState('');
-  const [tags, setTags] = useState('');
+  const [folder, setFolder] = useState("");
+  const [tags, setTags] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const droppedFiles = Array.from(e.dataTransfer.files);
     addFiles(droppedFiles);
   }, []);
@@ -40,56 +40,66 @@ export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
   }, []);
 
   const addFiles = (newFiles: File[]) => {
-    const uploadFiles: UploadFile[] = newFiles.map(file => ({
+    const uploadFiles: UploadFile[] = newFiles.map((file) => ({
       file,
-      status: 'pending',
-      progress: 0
+      status: "pending",
+      progress: 0,
     }));
-    setFiles(prev => [...prev, ...uploadFiles]);
+    setFiles((prev) => [...prev, ...uploadFiles]);
   };
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const uploadFile = async (uploadFile: UploadFile, index: number) => {
-    setFiles(prev => prev.map((f, i) => 
-      i === index ? { ...f, status: 'uploading' } : f
-    ));
+    setFiles((prev) =>
+      prev.map((f, i) => (i === index ? { ...f, status: "uploading" } : f)),
+    );
 
     try {
       const formData = new FormData();
-      formData.append('file', uploadFile.file);
+      formData.append("file", uploadFile.file);
 
       const params = new URLSearchParams();
-      if (folder) params.set('folder', folder);
-      if (tags) params.set('tags', tags);
+      if (folder) params.set("folder", folder);
+      if (tags) params.set("tags", tags);
 
-      const response = await fetch(`/api/storage/objects?${params.toString()}`, {
-        method: 'POST',
-        body: formData
-      });
+      const response = await fetch(
+        `/api/storage/objects?${params.toString()}`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
 
-      if (!response.ok) throw new Error('Upload fehlgeschlagen');
+      if (!response.ok) throw new Error("Upload fehlgeschlagen");
 
-      setFiles(prev => prev.map((f, i) => 
-        i === index ? { ...f, status: 'success', progress: 100 } : f
-      ));
+      setFiles((prev) =>
+        prev.map((f, i) =>
+          i === index ? { ...f, status: "success", progress: 100 } : f,
+        ),
+      );
     } catch (err) {
-      setFiles(prev => prev.map((f, i) => 
-        i === index ? { 
-          ...f, 
-          status: 'error', 
-          error: err instanceof Error ? err.message : 'Unbekannter Fehler' 
-        } : f
-      ));
+      setFiles((prev) =>
+        prev.map((f, i) =>
+          i === index
+            ? {
+                ...f,
+                status: "error",
+                error:
+                  err instanceof Error ? err.message : "Unbekannter Fehler",
+              }
+            : f,
+        ),
+      );
     }
   };
 
   const uploadAllFiles = async () => {
-    const pendingFiles = files.filter(f => f.status === 'pending');
+    const pendingFiles = files.filter((f) => f.status === "pending");
     for (let i = 0; i < files.length; i++) {
-      if (files[i].status === 'pending') {
+      if (files[i].status === "pending") {
         await uploadFile(files[i], i);
       }
     }
@@ -97,15 +107,15 @@ export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
   };
 
   const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
-  const pendingCount = files.filter(f => f.status === 'pending').length;
-  const successCount = files.filter(f => f.status === 'success').length;
+  const pendingCount = files.filter((f) => f.status === "pending").length;
+  const successCount = files.filter((f) => f.status === "success").length;
 
   return (
     <div className="p-6 space-y-6">
@@ -157,13 +167,16 @@ export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
           border-2 border-dashed rounded-xl p-12
           flex flex-col items-center justify-center
           transition-all duration-200
-          ${isDragging 
-            ? 'border-dms-primary bg-dms-primary/5' 
-            : 'border-gray-300 hover:border-dms-primary'
+          ${
+            isDragging
+              ? "border-dms-primary bg-dms-primary/5"
+              : "border-gray-300 hover:border-dms-primary"
           }
         `}
       >
-        <Upload className={`w-12 h-12 mb-4 ${isDragging ? 'text-dms-primary' : 'text-gray-400'}`} />
+        <Upload
+          className={`w-12 h-12 mb-4 ${isDragging ? "text-dms-primary" : "text-gray-400"}`}
+        />
         <p className="text-dms-dark font-medium text-lg mb-2">
           Dateien hier ablegen
         </p>
@@ -208,7 +221,8 @@ export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-dms-dark font-medium">
-              {files.length} {files.length === 1 ? 'Datei' : 'Dateien'} ausgewählt
+              {files.length} {files.length === 1 ? "Datei" : "Dateien"}{" "}
+              ausgewählt
               {successCount > 0 && (
                 <span className="text-dms-success ml-2">
                   ({successCount} hochgeladen)
@@ -230,10 +244,13 @@ export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
             {files.map((uploadFile, index) => (
               <div key={index} className="p-4 flex items-center gap-4">
                 <div className="text-2xl">
-                  {uploadFile.file.type.includes('pdf') ? '📄' : 
-                   uploadFile.file.type.includes('image') ? '🖼️' : '📁'}
+                  {uploadFile.file.type.includes("pdf")
+                    ? "📄"
+                    : uploadFile.file.type.includes("image")
+                      ? "🖼️"
+                      : "📁"}
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-dms-dark truncate">
                     {uploadFile.file.name}
@@ -244,25 +261,59 @@ export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {uploadFile.status === 'pending' && (
+                  {uploadFile.status === "pending" && (
                     <>
                       <button
-                        onClick={() => uploadFile && uploadFile.file && uploadFile && uploadFile && uploadFile && index !== undefined && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && uploadFile && removeFile(index)}
+                        onClick={() =>
+                          uploadFile &&
+                          uploadFile.file &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          index !== undefined &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          uploadFile &&
+                          removeFile(index)
+                        }
                         className="p-2 hover:bg-gray-100 rounded-lg text-dms-secondary"
                       >
                         <X className="w-5 h-5" />
                       </button>
                     </>
                   )}
-                  {uploadFile.status === 'uploading' && (
+                  {uploadFile.status === "uploading" && (
                     <div className="w-8 h-8 border-2 border-dms-primary border-t-transparent rounded-full animate-spin" />
                   )}
-                  {uploadFile.status === 'success' && (
+                  {uploadFile.status === "success" && (
                     <div className="w-8 h-8 bg-dms-success rounded-full flex items-center justify-center">
                       <Check className="w-5 h-5 text-white" />
                     </div>
                   )}
-                  {uploadFile.status === 'error' && (
+                  {uploadFile.status === "error" && (
                     <div className="flex items-center gap-2 text-dms-danger">
                       <AlertCircle className="w-5 h-5" />
                       <span className="text-sm">{uploadFile.error}</span>

@@ -5,6 +5,39 @@ Alle bemerkenswerten Änderungen an DMSCode werden in dieser Datei dokumentiert.
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.6.0] - 2026-01-30
+
+### 🧠 GraphRAG - Knowledge Graph Integration
+- **Graph-Service**: Neuer FastAPI Backend-Service mit SurrealDB für strukturierte Dokumenten-Graphen
+  - Automatische Entity Extraction (Personen, Organisationen, Daten, Beträge, Produkte, Orte)
+  - LLM-basierte Erkennung + Regex-Fallback
+  - Speicherung von Entitäten und Beziehungen in Graph-Datenbank
+- **Hybrid Retrieval**: Kombination aus Graph-Queries und Vector Search
+  - Agent erkennt automatisch strukturierte Queries ("wer", "welche organisation", "verbindung")
+  - Nutzt Knowledge Graph für strukturierte Informationen
+  - Ergänzt mit semantischer Suche für umfassende Antworten
+- **Graph Visualisierung**: Interaktives D3.js Panel
+  - Force-directed Graph Layout
+  - Color-coded Entity-Types
+  - Drag & Drop, Zoom, Pan
+  - Info Panel mit Entity-Details
+- **Neue Commands**:
+  - `DMS: Knowledge Graph anzeigen` - Visualisierung öffnen
+  - `DMS: Entitäten extrahieren` - Entity Extraction für Dokument
+- **Context-Menu Integration**: Rechtsklick auf Dokument → "Entitäten extrahieren"
+
+### 🚀 Backend
+- **SurrealDB Container**: Graph-Datenbank für Entitäten und Beziehungen
+- **graph-service**: Port 8530, vollständige REST API für Graph-Operationen
+- **Docker Integration**: Beide Compose-Files (local + hetzner) erweitert
+- **Nginx Proxy Route**: `/graph/` → Graph-Service
+
+### 📚 Dokumentation
+- **GRAPHRAG.md**: Vollständige Übersicht über GraphRAG-Implementation
+  - API Endpoints
+  - Workflow-Beispiele
+  - Deployment-Anleitung
+
 ## [0.5.0] - 2025-12-30
 
 ### 🚀 Neu hinzugefügt

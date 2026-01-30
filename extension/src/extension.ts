@@ -10,6 +10,7 @@ import { DmsService } from "./services/DmsService";
 import { CalendarPanel } from "./views/CalendarPanel";
 import { DashboardPanel } from "./views/DashboardPanel";
 import { DocumentDetailsPanel } from "./views/DocumentDetailsPanel";
+import { GraphVisualizationPanel } from "./views/GraphVisualizationPanel";
 import { ScannerPanel } from "./views/ScannerPanel";
 import { SemanticSearchPanel } from "./views/SemanticSearchPanel";
 import { SpeechPanel } from "./views/SpeechPanel";
@@ -285,6 +286,75 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("dms.scanDocument", () => {
       ScannerPanel.createOrShow(context.extensionUri, dmsService);
+    })
+  );
+
+  // Knowledge Graph Visualisierung
+  context.subscriptions.push(
+    vscode.commands.registerCommand("dms.showKnowledgeGraph", async (docId?: string) => {
+      if (!docId) {
+        // Ask for document ID or use current document
+        const docs = await dmsService.getDocuments();
+        const items = docs.map(doc => ({
+          label: doc.name,
+          description: doc.id,
+          docId: doc.id
+        }));
+        
+        const selected = await vscode.window.showQuickPick(items, {
+          placeHolder: "Dokument für Knowledge Graph auswählen"
+        });
+        
+        if (selected) {
+          docId = selected.docId;
+        }
+      }
+      
+      GraphVisualizationPanel.createOrShow(context.extensionUri, dmsService, docId);
+    })
+  );
+
+  // Extract entities from document
+  context.subscriptions.push(
+    vscode.commands.registerCommand("dms.extractEntities", async (treeItem: any) => {
+      const docId = treeItem?.docId;
+      if (!docId) {
+        vscode.window.showErrorMessage("Bitte wählen Sie ein Dokument aus.");
+        return;
+      }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: "Extrahiere Entitäten...",
+          cancellable: false,
+        },
+        async (progress) => {
+          try {
+            progress.report({ message: "Analysiere Dokument..." });
+            const result = await dmsService.extractEntitiesFromDocument(docId);
+            
+            progress.report({ message: "Entitäten extrahiert!" });
+            
+            vscode.window.showInformationMessage(
+              `✓ ${result.entities.length} Entitäten und ${result.relationships.length} Beziehungen gefunden.`
+            );
+            
+            // Optionally open the graph visualization
+            const choice = await vscode.window.showInformationMessage(
+              "Möchten Sie den Knowledge Graph anzeigen?",
+              "Ja",
+              "Nein"
+            );
+            
+            if (choice === "Ja") {
+              GraphVisualizationPanel.createOrShow(context.extensionUri, dmsService, docId);
+            }
+          } catch (error) {
+            vscode.window.showErrorMessage(`Fehler beim Extrahieren: ${error}`);
+          }
+        }
+      );
     })
   );
 

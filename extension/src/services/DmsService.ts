@@ -312,6 +312,13 @@ export class DmsService {
     );
   }
 
+  get graphEndpoint(): string {
+    return (
+      this.getConfig<string>("graphEndpoint") ||
+      "http://49.13.150.177/graph"
+    );
+  }
+
   get apiKey(): string | undefined {
     return this.getConfig<string>("apiKey");
   }
@@ -1253,6 +1260,97 @@ export class DmsService {
       }
     }
     return results;
+  }
+
+  // ===== GraphRAG Integration =====
+
+  async extractEntitiesFromDocument(docId: string): Promise<any> {
+    const doc = this.documentsCache.get(this.getPathFromId(docId));
+    if (!doc) {
+      throw new DmsError("Dokument nicht gefunden", "FILE_NOT_FOUND");
+    }
+
+    const text = doc.ocrText || (await this.runOcrFallback(vscode.Uri.file(doc.path)));
+    
+    try {
+      const response = await axios.post(
+        `${this.graphEndpoint}/extract`,
+        {
+          doc_id: docId,
+          text: text,
+          metadata: {
+            filename: doc.name,
+            tags: doc.tags,
+            path: doc.path,
+          },
+        },
+        {
+          headers: this.getHeaders(),
+          timeout: 30000,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new DmsError(
+          `Graph-Extraktion fehlgeschlagen: ${error.message}`,
+          "SERVICE_UNAVAILABLE"
+        );
+      }
+      throw error;
+    }
+  }
+
+  async queryKnowledgeGraph(query: string, params: Record<string, any> = {}): Promise<any> {
+    try {
+      const response = await axios.post(
+        `${this.graphEndpoint}/query`,
+        {
+          query: query,
+          params: params,
+        },
+        {
+          headers: this.getHeaders(),
+          timeout: 10000,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new DmsError(
+          `Graph-Query fehlgeschlagen: ${error.message}`,
+          "SERVICE_UNAVAILABLE"
+        );
+      }
+      throw error;
+    }
+  }
+
+  async getDocumentGraph(docId: string): Promise<any> {
+    try {
+      const response = await axios.get(
+        `${this.graphEndpoint}/graph/${docId}`,
+        {
+          headers: this.getHeaders(),
+          timeout: 10000,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          throw new DmsError("Dokument-Graph nicht gefunden", "FILE_NOT_FOUND");
+        }
+        throw new DmsError(
+          `Graph-Abfrage fehlgeschlagen: ${error.message}`,
+          "SERVICE_UNAVAILABLE"
+        );
+      }
+      throw error;
+    }
   }
 
   async reindexAll(

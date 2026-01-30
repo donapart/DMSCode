@@ -2,7 +2,7 @@
   "name": "dmscode",
   "displayName": "DMSCode - Document Management System",
   "description": "Verwandelt VS Code in ein vollständiges Document Management System mit OCR, Semantic Search, AI-Chat und mehr",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "dmscode",
   "license": "MIT",
   "repository": {
@@ -134,6 +134,16 @@
         "icon": "$(calendar)"
       },
       {
+        "command": "dms.showKnowledgeGraph",
+        "title": "DMS: Knowledge Graph anzeigen",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "dms.extractEntities",
+        "title": "DMS: Entitäten extrahieren",
+        "icon": "$(symbol-namespace)"
+      },
+      {
         "command": "dms.importDocuments",
         "title": "DMS: Dokumente importieren",
         "icon": "$(cloud-download)"
@@ -259,19 +269,24 @@
           "group": "navigation"
         },
         {
-          "command": "dms.compareDocuments",
+          "command": "dms.extractEntities",
           "when": "viewItem =~ /dms-document-.*/",
           "group": "ai@1"
         },
         {
-          "command": "dms.extractData",
+          "command": "dms.compareDocuments",
           "when": "viewItem =~ /dms-document-.*/",
           "group": "ai@2"
         },
         {
-          "command": "dms.chatWithDocument",
+          "command": "dms.extractData",
           "when": "viewItem =~ /dms-document-.*/",
           "group": "ai@3"
+        },
+        {
+          "command": "dms.chatWithDocument",
+          "when": "viewItem =~ /dms-document-.*/",
+          "group": "ai@4"
         },
         {
           "command": "dms.addTag",

@@ -99,12 +99,51 @@ services:
       - dmscode-redis:/data
     restart: unless-stopped
 
+  # ═══════════════════════════════════════════════════════════
+  # SurrealDB - Graph Database für Knowledge Graph
+  # ═══════════════════════════════════════════════════════════
+  surrealdb:
+    image: surrealdb/surrealdb:latest
+    container_name: dmscode-surrealdb
+    ports:
+      - "8000:8000"
+    volumes:
+      - dmscode-surrealdb:/data
+    command: start --log trace --user root --pass root file:/data/database.db
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════
+  # Graph Service - Knowledge Graph und Entity Extraction
+  # ═══════════════════════════════════════════════════════════
+  graph-service:
+    build:
+      context: ./backend/graph
+      dockerfile: Dockerfile
+    container_name: dmscode-graph
+    ports:
+      - "8530:8530"
+    volumes:
+      - ./backend/graph:/app
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2:3b
+      - SURREALDB_URL=ws://surrealdb:8000/rpc
+      - SURREALDB_NS=dmscode
+      - SURREALDB_DB=knowledge
+      - SURREALDB_USER=root
+      - SURREALDB_PASS=root
+    depends_on:
+      - surrealdb
+      - ollama
+    restart: unless-stopped
+
 volumes:
   dmscode-temp:
   dmscode-embeddings:
   dmscode-ollama:
   dmscode-tts-models:
   dmscode-redis:
+  dmscode-surrealdb:
 
 networks:
   default:

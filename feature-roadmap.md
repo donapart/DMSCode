@@ -169,9 +169,18 @@ Ziel: „tägliche Nutzung ohne Angst“.
 - [x] **Welcome Message**: Begrüßung beim ersten Start mit Quick-Links.
 - [x] **Walkthrough erweitert**: Neue Features und Tastenkürzel dokumentiert.
 
+### 5.5 GraphRAG - Knowledge Graph Integration
+- [x] **Graph-Service**: FastAPI Backend mit SurrealDB für strukturierte Dokumenten-Graphen (Entitäten, Beziehungen, Eigenschaften).
+- [x] **Entity Extraction**: LLM extrahiert aus Dokumenten automatisch Entitäten (Personen, Organisationen, Daten, Beträge) und deren Beziehungen.
+- [x] **Hybrid Retrieval**: Kombination aus Graph-Queries (strukturiert) und Vector Search (semantisch) für intelligentere Antworten.
+- [x] **Pydantic AI Agent**: Agent entscheidet automatisch, ob Graph-Query oder Vector-Search optimal ist.
+- [x] **Graph Visualisierung**: Webview Panel zeigt interaktiven Graph der Dokumenten-Beziehungen.
+- [ ] **Schema Evolution**: Automatische Schema-Anpassung bei neuen Entitäts-Typen durch LLM-Feedback.
+
 ---
 
 ## Anhang: Offene Fragen (für die nächste Iteration)
-- Soll das „Single-User local DMS“ bleiben oder „Server DMS für mehrere Geräte/Users“ werden?
+- Soll das „Single-User local DMS" bleiben oder „Server DMS für mehrere Geräte/Users" werden?
 - Wo sollen Originaldateien langfristig liegen (lokal, Server, S3/Azure, …)?
 - Welche Dokumenttypen sind Priorität (Rechnung/Vertrag/…)?
+- GraphRAG: Welche Entitäts-Typen sind Priorität (Person, Organisation, Betrag, Datum, Produkt, …)?

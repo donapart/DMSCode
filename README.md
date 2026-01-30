@@ -36,6 +36,8 @@ Eigener Fork von VS Code mit eingebauten DMS-Features.
 | **AI Chat (@dms)**      | ✅      | Chat mit Dokumenten, Zusammenfassungen, Extraktion.        |
 | **Auto-Tagging**        | ✅      | KI schlägt Tags basierend auf Inhalt vor.                  |
 | **Portable Index**      | ✅      | Metadaten liegen in `dms-index.json` direkt beim Dokument. |
+| **Knowledge Graph**     | ✅      | GraphRAG mit SurrealDB für Entitäten und Beziehungen.      |
+| **Graph Visualisierung**| ✅      | Interaktive D3.js Visualisierung des Knowledge Graphs.     |
 | **Kalender**            | ✅      | Zeitliche Übersicht der Dokumente.                         |
 | **Dashboard**           | ✅      | Übersicht über letzte Dokumente und Tag-Cloud.             |
 
@@ -51,6 +53,8 @@ Nutzen Sie `@dms` im Chat, um mit Ihren Dokumenten zu interagieren:
 - **Chat with Document**: Rechtsklick auf eine Datei -> "Chat with Document".
 - **Auto-Tagging**: Lassen Sie die KI passende Tags vorschlagen.
 - **Data Extraction**: Extrahieren Sie strukturierte Daten (Rechnungsnummer, Datum) aus PDFs.
+- **Knowledge Graph**: Entitäten und Beziehungen werden automatisch extrahiert und visualisiert.
+- **Hybrid Retrieval**: GraphRAG kombiniert strukturierte Graph-Queries mit semantischer Suche.
 
 ### Health & Maintenance
 - **Health Check**: Prüfen Sie die Verbindung zu allen Services (OCR, LLM, Search) mit `DMS: Check System Health`.

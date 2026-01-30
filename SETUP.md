@@ -26,16 +26,16 @@ winget install Microsoft.VisualStudioCode.Insiders
 
 ### Installierte Extensions
 
-| Extension | Beschreibung |
-|-----------|--------------|
-| ESLint | JavaScript/TypeScript Linting |
-| Prettier | Code-Formatierung |
-| GitHub Copilot | AI-Unterstützung |
-| GitLens | Erweiterte Git-Features |
-| Docker | Container-Management |
-| Error Lens | Inline-Fehleranzeige |
-| Todo Tree | TODO-Verwaltung |
-| YAML | YAML-Support |
+| Extension      | Beschreibung                  |
+| -------------- | ----------------------------- |
+| ESLint         | JavaScript/TypeScript Linting |
+| Prettier       | Code-Formatierung             |
+| GitHub Copilot | AI-Unterstützung              |
+| GitLens        | Erweiterte Git-Features       |
+| Docker         | Container-Management          |
+| Error Lens     | Inline-Fehleranzeige          |
+| Todo Tree      | TODO-Verwaltung               |
+| YAML           | YAML-Support                  |
 
 ## 🛠️ Extension entwickeln und testen
 

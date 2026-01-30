@@ -155,7 +155,31 @@ export class DmsAssistant {
       )}):\n${text}\n`;
     }
 
-    // 2. Find similar documents (RAG)
+    // 2. Hybrid Retrieval: Graph + Vector Search
+    let useGraphRAG = false;
+    
+    // Detect if query benefits from structured knowledge (entities, relationships)
+    const structuredKeywords = ['wer', 'welche', 'organisation', 'person', 'verbindung', 'beziehung', 'zusammenhang'];
+    useGraphRAG = structuredKeywords.some(kw => prompt.toLowerCase().includes(kw));
+
+    if (useGraphRAG) {
+      try {
+        stream.progress("Durchsuche Knowledge Graph...");
+        
+        // Try to find relevant entities first
+        const graphResult = await this.queryGraphForContext(prompt);
+        if (graphResult) {
+          context += "\nKnowledge Graph Informationen:\n";
+          context += graphResult;
+          stream.markdown("🧠 *Verwendet Knowledge Graph*\n\n");
+        }
+      } catch (error) {
+        console.warn("Graph query failed, falling back to vector search:", error);
+        useGraphRAG = false;
+      }
+    }
+
+    // 3. Always add vector search as fallback/supplement
     try {
       stream.progress("Suche relevante Dokumente...");
       const similarDocs = await this.dmsService.semanticSearch(prompt);
@@ -187,5 +211,41 @@ export class DmsAssistant {
     stream.button({ command: "dms.openDashboard", title: "📊 Dashboard" });
 
     return { metadata: { success: true } };
+  }
+
+  private async queryGraphForContext(prompt: string): Promise<string | null> {
+    // Simple pattern matching for entity types
+    let entityQuery = "";
+    
+    if (prompt.toLowerCase().includes('organisation') || prompt.toLowerCase().includes('firma')) {
+      entityQuery = "SELECT * FROM entity WHERE type = 'organization' LIMIT 10";
+    } else if (prompt.toLowerCase().includes('person') || prompt.toLowerCase().includes('wer')) {
+      entityQuery = "SELECT * FROM entity WHERE type = 'person' LIMIT 10";
+    } else if (prompt.toLowerCase().includes('datum') || prompt.toLowerCase().includes('wann')) {
+      entityQuery = "SELECT * FROM entity WHERE type = 'date' LIMIT 10";
+    } else if (prompt.toLowerCase().includes('betrag') || prompt.toLowerCase().includes('preis')) {
+      entityQuery = "SELECT * FROM entity WHERE type = 'amount' LIMIT 10";
+    } else {
+      // Generic query: get all recent entities
+      entityQuery = "SELECT * FROM entity ORDER BY created_at DESC LIMIT 20";
+    }
+
+    try {
+      const result = await this.dmsService.queryKnowledgeGraph(entityQuery);
+      
+      if (result && result.result && result.result.length > 0) {
+        let contextText = "Gefundene Entitäten:\n";
+        
+        for (const entity of result.result[0]?.result || []) {
+          contextText += `- ${entity.type}: ${entity.value} (Confidence: ${entity.confidence})\n`;
+        }
+        
+        return contextText;
+      }
+    } catch (error) {
+      console.error("Graph query failed:", error);
+    }
+    
+    return null;
   }
 }

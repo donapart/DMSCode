@@ -1,0 +1,51 @@
+{
+  "id": "flow_sample_01",
+  "name": "Invoice Approval",
+  "nodes": [
+    {
+      "id": "node_1",
+      "type": "trigger",
+      "data": {
+        "label": "On Import (Invoice)"
+      },
+      "position": {
+        "x": 100,
+        "y": 50
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "condition",
+      "data": {
+        "label": "Amount > 500"
+      },
+      "position": {
+        "x": 100,
+        "y": 150
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "action",
+      "data": {
+        "label": "Email Manager"
+      },
+      "position": {
+        "x": 100,
+        "y": 250
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "node_1",
+      "target": "node_2"
+    },
+    {
+      "id": "edge_2",
+      "source": "node_2",
+      "target": "node_3"
+    }
+  ]
+}

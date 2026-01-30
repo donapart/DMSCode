@@ -30,6 +30,42 @@ server {
   add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, DELETE" always;
   add_header Access-Control-Allow-Headers "Content-Type, Authorization, X-API-KEY" always;
 
+  # API Routes for Web Dashboard
+  location /api/storage/ {
+    set $upstream_storage storage-service:8550;
+    rewrite ^/api/storage/(.*) /$1 break;
+    proxy_pass http://$upstream_storage;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 100M;
+    proxy_read_timeout 300s;
+  }
+
+  location /api/search/ {
+    set $upstream_search search-service:8520;
+    rewrite ^/api/search/(.*) /$1 break;
+    proxy_pass http://$upstream_search;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 300s;
+  }
+
+  location /api/ocr/ {
+    set $upstream_ocr ocr-service:8510;
+    rewrite ^/api/ocr/(.*) /$1 break;
+    proxy_pass http://$upstream_ocr;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 50M;
+    proxy_read_timeout 300s;
+  }
+
   # Ollama (Chat/LLM)
   location /api/ {
     set $upstream_ollama ollama:11434;

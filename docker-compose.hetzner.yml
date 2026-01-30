@@ -1,5 +1,5 @@
 # DMSCode Hetzner deployment
-# - Exposes only nginx on 80
+# - Exposes nginx on 80 and 443 (SSL)
 # - Services stay on the internal docker network
 # - Configure env via .env.hetzner (see .env.hetzner.example)
 
@@ -9,11 +9,14 @@ services:
     container_name: dmscode-nginx
     ports:
       - "80:80"
+      - "443:443"
     environment:
       - DMS_SERVER_NAME=${DMS_SERVER_NAME}
       - DMS_API_KEY=${DMS_API_KEY}
     volumes:
       - ./docker/nginx.hetzner.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./certbot-webroot:/var/www/certbot:ro
     depends_on:
       - ocr-service
       - search-service

@@ -8,7 +8,7 @@ export class DmsError extends Error {
   constructor(
     message: string,
     public readonly code: DmsErrorCode,
-    public readonly details?: Record<string, unknown>
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "DmsError";
@@ -72,7 +72,7 @@ export class DmsService {
     const docsPath = this.documentsPath;
     // Watch for changes in the documents directory
     this.fileWatcher = vscode.workspace.createFileSystemWatcher(
-      new vscode.RelativePattern(docsPath, "**/*")
+      new vscode.RelativePattern(docsPath, "**/*"),
     );
 
     this.fileWatcher.onDidCreate(async (uri) => {
@@ -185,7 +185,7 @@ export class DmsService {
     if (!content || content.length < 10) {
       throw new DmsError(
         "Zu wenig Text für automatische Umbenennung",
-        "INVALID_DOCUMENT"
+        "INVALID_DOCUMENT",
       );
     }
 
@@ -314,8 +314,7 @@ export class DmsService {
 
   get graphEndpoint(): string {
     return (
-      this.getConfig<string>("graphEndpoint") ||
-      "http://49.13.150.177/graph"
+      this.getConfig<string>("graphEndpoint") || "http://49.13.150.177/graph"
     );
   }
 
@@ -324,7 +323,7 @@ export class DmsService {
   }
 
   private getHeaders(
-    contentType: string = "application/json"
+    contentType: string = "application/json",
   ): Record<string, string> {
     const headers: Record<string, string> = {
       "Content-Type": contentType,
@@ -363,7 +362,7 @@ export class DmsService {
     // 2. Fallback: Load from globalState (Legacy)
     const cacheData =
       this.context.globalState.get<Record<string, DmsDocument>>(
-        "documentsCache"
+        "documentsCache",
       );
     if (cacheData) {
       // Migration: If we have data in globalState but not in file, we will save to file next time
@@ -386,7 +385,7 @@ export class DmsService {
       fs.writeFileSync(
         indexFile,
         JSON.stringify(cacheObject, null, 2),
-        "utf-8"
+        "utf-8",
       );
     } catch (e) {
       console.error("Failed to save dms-index.json", e);
@@ -490,7 +489,7 @@ export class DmsService {
 
   async importDocuments(
     uris: vscode.Uri[],
-    conflictStrategy: "overwrite" | "rename" | "skip" = "rename"
+    conflictStrategy: "overwrite" | "rename" | "skip" = "rename",
   ): Promise<number> {
     const docsPath = this.documentsPath;
     if (!fs.existsSync(docsPath)) {
@@ -522,7 +521,7 @@ export class DmsService {
   private handleFileImport(
     srcPath: string,
     destPath: string,
-    strategy: "overwrite" | "rename" | "skip"
+    strategy: "overwrite" | "rename" | "skip",
   ): boolean {
     if (fs.existsSync(destPath)) {
       if (strategy === "skip") {
@@ -534,13 +533,13 @@ export class DmsService {
         let counter = 1;
         let newDest = path.join(
           path.dirname(destPath),
-          `${name}_${counter}${ext}`
+          `${name}_${counter}${ext}`,
         );
         while (fs.existsSync(newDest)) {
           counter++;
           newDest = path.join(
             path.dirname(destPath),
-            `${name}_${counter}${ext}`
+            `${name}_${counter}${ext}`,
           );
         }
         fs.copyFileSync(srcPath, newDest);
@@ -555,7 +554,7 @@ export class DmsService {
   private copyDirectory(
     src: string,
     dest: string,
-    strategy: "overwrite" | "rename" | "skip"
+    strategy: "overwrite" | "rename" | "skip",
   ): number {
     if (!fs.existsSync(dest)) {
       fs.mkdirSync(dest, { recursive: true });
@@ -581,7 +580,7 @@ export class DmsService {
 
   async exportDocuments(
     targetUri: vscode.Uri,
-    filter?: { tag?: string; after?: Date }
+    filter?: { tag?: string; after?: Date },
   ): Promise<number> {
     let docs = await this.getDocuments();
 
@@ -616,7 +615,7 @@ export class DmsService {
       throw new DmsError(
         `Datei nicht gefunden: ${uri.fsPath}`,
         "FILE_NOT_FOUND",
-        { path: uri.fsPath }
+        { path: uri.fsPath },
       );
     }
 
@@ -738,7 +737,7 @@ export class DmsService {
           ".jpeg",
           ".tiff",
         ],
-      }
+      },
     );
   }
 
@@ -765,7 +764,7 @@ export class DmsService {
         {
           timeout: 30000,
           headers: this.getHeaders(),
-        }
+        },
       );
     } catch (error) {
       console.warn("Failed to index document:", error);
@@ -799,7 +798,7 @@ export class DmsService {
         {
           timeout: 30000,
           headers: this.getHeaders(),
-        }
+        },
       );
 
       // Map backend response to SearchResult format
@@ -823,7 +822,7 @@ export class DmsService {
           },
           score: r.distance ? 1 / (1 + r.distance) : 0.5, // Convert distance to similarity score
           snippet: r.text?.substring(0, 200) || "",
-        })
+        }),
       );
       return results;
     } catch (error) {
@@ -832,7 +831,7 @@ export class DmsService {
         console.warn(
           `Semantic search error (${
             axiosError.response?.status || axiosError.code
-          }): ${axiosError.message}`
+          }): ${axiosError.message}`,
         );
       }
       // Fallback: Enhanced text search
@@ -923,7 +922,7 @@ export class DmsService {
               : message,
             stream: false,
           },
-          { timeout: 120000 }
+          { timeout: 120000 },
         );
 
         return response.data.response || "";
@@ -950,7 +949,7 @@ export class DmsService {
           {
             headers: { Authorization: `Bearer ${apiKey}` },
             timeout: 60000,
-          }
+          },
         );
 
         interface OpenAIResponse {
@@ -964,7 +963,7 @@ export class DmsService {
       throw new DmsError(
         `Provider ${provider} nicht implementiert`,
         "LLM_ERROR",
-        { provider, supportedProviders: ["ollama", "openai"] }
+        { provider, supportedProviders: ["ollama", "openai"] },
       );
     } catch (error) {
       if (error instanceof DmsError) {
@@ -981,7 +980,7 @@ export class DmsService {
             provider === "ollama"
               ? "Starten Sie Ollama mit: ollama serve"
               : "Überprüfen Sie Ihre API-Konfiguration",
-        }
+        },
       );
     }
   }
@@ -992,7 +991,7 @@ export class DmsService {
 
   async extractInfo(text: string, infoType: string): Promise<string> {
     return this.chat(
-      `Extrahiere ${infoType} aus dem folgenden Text:\n\n${text}`
+      `Extrahiere ${infoType} aus dem folgenden Text:\n\n${text}`,
     );
   }
 
@@ -1035,7 +1034,7 @@ export class DmsService {
 
   async extractStructuredData(
     docId: string,
-    templateType: "invoice" | "contract" | "generic"
+    templateType: "invoice" | "contract" | "generic",
   ): Promise<string> {
     const doc = this.documentsCache.get(this.getPathFromId(docId));
     if (!doc) {
@@ -1110,7 +1109,7 @@ export class DmsService {
       t
         .trim()
         .toLowerCase()
-        .replace(/[^a-z0-9äöüß\-_]/g, "")
+        .replace(/[^a-z0-9äöüß\-_]/g, ""),
     );
 
     // Add tags to document
@@ -1149,7 +1148,7 @@ export class DmsService {
         {
           responseType: "arraybuffer",
           timeout: 60000,
-        }
+        },
       );
 
       // Save audio and play
@@ -1173,7 +1172,7 @@ export class DmsService {
           originalError: axiosError.message,
           suggestion:
             "Starten Sie den TTS-Service: docker-compose up -d tts-service",
-        }
+        },
       );
     }
   }
@@ -1207,7 +1206,7 @@ export class DmsService {
         `${this.ttsEndpoint.replace("8505", "8506")}/listen`,
         {
           timeout: 30000,
-        }
+        },
       );
       return response.data.text || "";
     } catch {
@@ -1215,7 +1214,7 @@ export class DmsService {
       vscode.window
         .showInformationMessage(
           "Für Spracheingabe öffnen Sie bitte das Sprach-Panel",
-          "Panel öffnen"
+          "Panel öffnen",
         )
         .then((selection) => {
           if (selection === "Panel öffnen") {
@@ -1270,8 +1269,9 @@ export class DmsService {
       throw new DmsError("Dokument nicht gefunden", "FILE_NOT_FOUND");
     }
 
-    const text = doc.ocrText || (await this.runOcrFallback(vscode.Uri.file(doc.path)));
-    
+    const text =
+      doc.ocrText || (await this.runOcrFallback(vscode.Uri.file(doc.path)));
+
     try {
       const response = await axios.post(
         `${this.graphEndpoint}/extract`,
@@ -1287,7 +1287,7 @@ export class DmsService {
         {
           headers: this.getHeaders(),
           timeout: 30000,
-        }
+        },
       );
 
       return response.data;
@@ -1295,14 +1295,17 @@ export class DmsService {
       if (axios.isAxiosError(error)) {
         throw new DmsError(
           `Graph-Extraktion fehlgeschlagen: ${error.message}`,
-          "SERVICE_UNAVAILABLE"
+          "SERVICE_UNAVAILABLE",
         );
       }
       throw error;
     }
   }
 
-  async queryKnowledgeGraph(query: string, params: Record<string, any> = {}): Promise<any> {
+  async queryKnowledgeGraph(
+    query: string,
+    params: Record<string, any> = {},
+  ): Promise<any> {
     try {
       const response = await axios.post(
         `${this.graphEndpoint}/query`,
@@ -1313,7 +1316,7 @@ export class DmsService {
         {
           headers: this.getHeaders(),
           timeout: 10000,
-        }
+        },
       );
 
       return response.data;
@@ -1321,7 +1324,7 @@ export class DmsService {
       if (axios.isAxiosError(error)) {
         throw new DmsError(
           `Graph-Query fehlgeschlagen: ${error.message}`,
-          "SERVICE_UNAVAILABLE"
+          "SERVICE_UNAVAILABLE",
         );
       }
       throw error;
@@ -1330,13 +1333,10 @@ export class DmsService {
 
   async getDocumentGraph(docId: string): Promise<any> {
     try {
-      const response = await axios.get(
-        `${this.graphEndpoint}/graph/${docId}`,
-        {
-          headers: this.getHeaders(),
-          timeout: 10000,
-        }
-      );
+      const response = await axios.get(`${this.graphEndpoint}/graph/${docId}`, {
+        headers: this.getHeaders(),
+        timeout: 10000,
+      });
 
       return response.data;
     } catch (error) {
@@ -1346,7 +1346,7 @@ export class DmsService {
         }
         throw new DmsError(
           `Graph-Abfrage fehlgeschlagen: ${error.message}`,
-          "SERVICE_UNAVAILABLE"
+          "SERVICE_UNAVAILABLE",
         );
       }
       throw error;
@@ -1354,7 +1354,11 @@ export class DmsService {
   }
 
   async reindexAll(
-    progressCallback?: (current: number, total: number, message: string) => void
+    progressCallback?: (
+      current: number,
+      total: number,
+      message: string,
+    ) => void,
   ): Promise<{ success: number; failed: number }> {
     const docs = await this.getDocuments();
     let success = 0;

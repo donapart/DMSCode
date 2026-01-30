@@ -10,7 +10,7 @@ export class GraphVisualizationPanel {
   public static createOrShow(
     extensionUri: vscode.Uri,
     dmsService: DmsService,
-    docId?: string
+    docId?: string,
   ) {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
@@ -35,13 +35,13 @@ export class GraphVisualizationPanel {
           vscode.Uri.joinPath(extensionUri, "out"),
           vscode.Uri.joinPath(extensionUri, "resources"),
         ],
-      }
+      },
     );
 
     GraphVisualizationPanel.currentPanel = new GraphVisualizationPanel(
       panel,
       extensionUri,
-      dmsService
+      dmsService,
     );
 
     if (docId) {
@@ -52,7 +52,7 @@ export class GraphVisualizationPanel {
   private constructor(
     panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
-    private dmsService: DmsService
+    private dmsService: DmsService,
   ) {
     this._panel = panel;
     this._extensionUri = extensionUri;
@@ -76,7 +76,7 @@ export class GraphVisualizationPanel {
         }
       },
       null,
-      this._disposables
+      this._disposables,
     );
   }
 

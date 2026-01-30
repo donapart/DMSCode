@@ -27,7 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
   // ===== StatusBar Item =====
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
-    100
+    100,
   );
   statusBarItem.command = "dms.openDashboard";
   context.subscriptions.push(statusBarItem);
@@ -36,7 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
   // ===== Welcome Message (First Start) =====
   const hasSeenWelcome = context.globalState.get<boolean>(
     "dms.hasSeenWelcome",
-    false
+    false,
   );
   if (!hasSeenWelcome) {
     showWelcomeMessage(context);
@@ -59,8 +59,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider("dms.recentView", recentProvider),
     vscode.window.registerTreeDataProvider(
       "dms.searchResultsView",
-      searchResultsProvider
-    )
+      searchResultsProvider,
+    ),
   );
 
   // Auto-Refresh when documents change
@@ -69,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
       documentsProvider.refresh();
       tagsProvider.refresh();
       recentProvider.refresh();
-    })
+    }),
   );
 
   // Refresh Documents Command
@@ -79,7 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
       tagsProvider.refresh();
       recentProvider.refresh();
       vscode.window.showInformationMessage("Dokumente aktualisiert");
-    })
+    }),
   );
 
   // ===== Custom Editor for PDF =====
@@ -90,8 +90,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.chat.createChatParticipant(
       "dms.assistant",
-      dmsAssistant.handleRequest.bind(dmsAssistant)
-    )
+      dmsAssistant.handleRequest.bind(dmsAssistant),
+    ),
   );
 
   // ===== Commands =====
@@ -126,7 +126,7 @@ export function activate(context: vscode.ExtensionContext) {
               value: "skip",
             },
           ],
-          { placeHolder: "Konfliktstrategie wählen" }
+          { placeHolder: "Konfliktstrategie wählen" },
         );
 
         if (strategy) {
@@ -138,17 +138,17 @@ export function activate(context: vscode.ExtensionContext) {
             async () => {
               const count = await dmsService.importDocuments(
                 uris,
-                strategy.value as any
+                strategy.value as any,
               );
               vscode.window.showInformationMessage(
-                `${count} Dokument(e) erfolgreich importiert.`
+                `${count} Dokument(e) erfolgreich importiert.`,
               );
               documentsProvider.refresh();
-            }
+            },
           );
         }
       }
-    })
+    }),
   );
 
   // Export Documents
@@ -168,7 +168,7 @@ export function activate(context: vscode.ExtensionContext) {
             { label: "Nach Tag filtern", value: "tag" },
             { label: "Nur neue (letzte 30 Tage)", value: "recent" },
           ],
-          { placeHolder: "Export-Filter wählen" }
+          { placeHolder: "Export-Filter wählen" },
         );
 
         if (!filterOption) return;
@@ -196,15 +196,15 @@ export function activate(context: vscode.ExtensionContext) {
           async () => {
             const count = await dmsService.exportDocuments(
               targetUri[0],
-              filter
+              filter,
             );
             vscode.window.showInformationMessage(
-              `${count} Dokument(e) erfolgreich exportiert.`
+              `${count} Dokument(e) erfolgreich exportiert.`,
             );
-          }
+          },
         );
       }
-    })
+    }),
   );
 
   // System Health Check
@@ -237,9 +237,9 @@ export function activate(context: vscode.ExtensionContext) {
             preview: true,
             viewColumn: vscode.ViewColumn.Beside,
           });
-        }
+        },
       );
-    })
+    }),
   );
 
   // Reindex All
@@ -248,7 +248,7 @@ export function activate(context: vscode.ExtensionContext) {
       const confirm = await vscode.window.showWarningMessage(
         "Möchten Sie wirklich alle Dokumente neu indexieren? Dies kann einige Zeit dauern.",
         "Ja, starten",
-        "Abbrechen"
+        "Abbrechen",
       );
 
       if (confirm !== "Ja, starten") return;
@@ -268,94 +268,111 @@ export function activate(context: vscode.ExtensionContext) {
           });
 
           vscode.window.showInformationMessage(
-            `Re-Indexierung abgeschlossen.\nErfolgreich: ${result.success}\nFehlgeschlagen: ${result.failed}`
+            `Re-Indexierung abgeschlossen.\nErfolgreich: ${result.success}\nFehlgeschlagen: ${result.failed}`,
           );
-        }
+        },
       );
-    })
+    }),
   );
 
   // Dashboard öffnen
   context.subscriptions.push(
     vscode.commands.registerCommand("dms.openDashboard", () => {
       DashboardPanel.createOrShow(context.extensionUri, dmsService);
-    })
+    }),
   );
 
   // Scanner öffnen
   context.subscriptions.push(
     vscode.commands.registerCommand("dms.scanDocument", () => {
       ScannerPanel.createOrShow(context.extensionUri, dmsService);
-    })
+    }),
   );
 
   // Knowledge Graph Visualisierung
   context.subscriptions.push(
-    vscode.commands.registerCommand("dms.showKnowledgeGraph", async (docId?: string) => {
-      if (!docId) {
-        // Ask for document ID or use current document
-        const docs = await dmsService.getDocuments();
-        const items = docs.map(doc => ({
-          label: doc.name,
-          description: doc.id,
-          docId: doc.id
-        }));
-        
-        const selected = await vscode.window.showQuickPick(items, {
-          placeHolder: "Dokument für Knowledge Graph auswählen"
-        });
-        
-        if (selected) {
-          docId = selected.docId;
+    vscode.commands.registerCommand(
+      "dms.showKnowledgeGraph",
+      async (docId?: string) => {
+        if (!docId) {
+          // Ask for document ID or use current document
+          const docs = await dmsService.getDocuments();
+          const items = docs.map((doc) => ({
+            label: doc.name,
+            description: doc.id,
+            docId: doc.id,
+          }));
+
+          const selected = await vscode.window.showQuickPick(items, {
+            placeHolder: "Dokument für Knowledge Graph auswählen",
+          });
+
+          if (selected) {
+            docId = selected.docId;
+          }
         }
-      }
-      
-      GraphVisualizationPanel.createOrShow(context.extensionUri, dmsService, docId);
-    })
+
+        GraphVisualizationPanel.createOrShow(
+          context.extensionUri,
+          dmsService,
+          docId,
+        );
+      },
+    ),
   );
 
   // Extract entities from document
   context.subscriptions.push(
-    vscode.commands.registerCommand("dms.extractEntities", async (treeItem: any) => {
-      const docId = treeItem?.docId;
-      if (!docId) {
-        vscode.window.showErrorMessage("Bitte wählen Sie ein Dokument aus.");
-        return;
-      }
-
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: "Extrahiere Entitäten...",
-          cancellable: false,
-        },
-        async (progress) => {
-          try {
-            progress.report({ message: "Analysiere Dokument..." });
-            const result = await dmsService.extractEntitiesFromDocument(docId);
-            
-            progress.report({ message: "Entitäten extrahiert!" });
-            
-            vscode.window.showInformationMessage(
-              `✓ ${result.entities.length} Entitäten und ${result.relationships.length} Beziehungen gefunden.`
-            );
-            
-            // Optionally open the graph visualization
-            const choice = await vscode.window.showInformationMessage(
-              "Möchten Sie den Knowledge Graph anzeigen?",
-              "Ja",
-              "Nein"
-            );
-            
-            if (choice === "Ja") {
-              GraphVisualizationPanel.createOrShow(context.extensionUri, dmsService, docId);
-            }
-          } catch (error) {
-            vscode.window.showErrorMessage(`Fehler beim Extrahieren: ${error}`);
-          }
+    vscode.commands.registerCommand(
+      "dms.extractEntities",
+      async (treeItem: any) => {
+        const docId = treeItem?.docId;
+        if (!docId) {
+          vscode.window.showErrorMessage("Bitte wählen Sie ein Dokument aus.");
+          return;
         }
-      );
-    })
+
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: "Extrahiere Entitäten...",
+            cancellable: false,
+          },
+          async (progress) => {
+            try {
+              progress.report({ message: "Analysiere Dokument..." });
+              const result =
+                await dmsService.extractEntitiesFromDocument(docId);
+
+              progress.report({ message: "Entitäten extrahiert!" });
+
+              vscode.window.showInformationMessage(
+                `✓ ${result.entities.length} Entitäten und ${result.relationships.length} Beziehungen gefunden.`,
+              );
+
+              // Optionally open the graph visualization
+              const choice = await vscode.window.showInformationMessage(
+                "Möchten Sie den Knowledge Graph anzeigen?",
+                "Ja",
+                "Nein",
+              );
+
+              if (choice === "Ja") {
+                GraphVisualizationPanel.createOrShow(
+                  context.extensionUri,
+                  dmsService,
+                  docId,
+                );
+              }
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Fehler beim Extrahieren: ${error}`,
+              );
+            }
+          },
+        );
+      },
+    ),
   );
 
   // Semantische Suche
@@ -377,11 +394,11 @@ export function activate(context: vscode.ExtensionContext) {
             context.extensionUri,
             dmsService,
             searchResultsProvider,
-            query
+            query,
           );
         }
-      }
-    )
+      },
+    ),
   );
 
   // PDF Viewer öffnen
@@ -403,11 +420,11 @@ export function activate(context: vscode.ExtensionContext) {
           await vscode.commands.executeCommand(
             "vscode.openWith",
             uri,
-            "dms.pdfViewer"
+            "dms.pdfViewer",
           );
         }
-      }
-    )
+      },
+    ),
   );
 
   // OCR ausführen
@@ -438,7 +455,7 @@ export function activate(context: vscode.ExtensionContext) {
               description: d.path,
               document: d,
             })),
-            { placeHolder: "Dokument(e) für OCR auswählen", canPickMany: true }
+            { placeHolder: "Dokument(e) für OCR auswählen", canPickMany: true },
           );
           if (picked) {
             targets = picked.map((p) => vscode.Uri.file(p.document.path));
@@ -483,11 +500,11 @@ export function activate(context: vscode.ExtensionContext) {
 
             if (failCount === 0) {
               vscode.window.showInformationMessage(
-                `OCR für ${successCount} Dokument(e) erfolgreich!`
+                `OCR für ${successCount} Dokument(e) erfolgreich!`,
               );
             } else {
               vscode.window.showWarningMessage(
-                `OCR abgeschlossen: ${successCount} erfolgreich, ${failCount} fehlgeschlagen.`
+                `OCR abgeschlossen: ${successCount} erfolgreich, ${failCount} fehlgeschlagen.`,
               );
             }
 
@@ -498,10 +515,10 @@ export function activate(context: vscode.ExtensionContext) {
               });
               await vscode.window.showTextDocument(doc);
             }
-          }
+          },
         );
-      }
-    )
+      },
+    ),
   );
 
   // AI Chat
@@ -510,9 +527,9 @@ export function activate(context: vscode.ExtensionContext) {
       // Öffne den Chat-Panel mit @dms
       await vscode.commands.executeCommand(
         "workbench.action.chat.open",
-        "@dms"
+        "@dms",
       );
-    })
+    }),
   );
 
   // Chat mit Dokument
@@ -539,15 +556,15 @@ export function activate(context: vscode.ExtensionContext) {
           // Open Chat with a prompt that implies context usage
           await vscode.commands.executeCommand(
             "workbench.action.chat.open",
-            "@dms Fasse dieses Dokument zusammen und beantworte Fragen dazu."
+            "@dms Fasse dieses Dokument zusammen und beantworte Fragen dazu.",
           );
         } else {
           vscode.window.showWarningMessage(
-            "Bitte wählen Sie ein Dokument aus."
+            "Bitte wählen Sie ein Dokument aus.",
           );
         }
-      }
-    )
+      },
+    ),
   );
 
   // Text-to-Speech
@@ -563,7 +580,7 @@ export function activate(context: vscode.ExtensionContext) {
         await dmsService.textToSpeech(text);
         vscode.window.showInformationMessage("TTS gestartet");
       }
-    })
+    }),
   );
 
   // Speech-to-Text
@@ -579,14 +596,14 @@ export function activate(context: vscode.ExtensionContext) {
           });
         }
       }
-    })
+    }),
   );
 
   // Kalender öffnen
   context.subscriptions.push(
     vscode.commands.registerCommand("dms.openCalendar", () => {
       CalendarPanel.createOrShow(context.extensionUri, dmsService);
-    })
+    }),
   );
 
   // Dokument Details anzeigen
@@ -603,7 +620,7 @@ export function activate(context: vscode.ExtensionContext) {
             description: d.path,
             document: d,
           })),
-          { placeHolder: "Dokument auswählen" }
+          { placeHolder: "Dokument auswählen" },
         );
         if (picked) {
           doc = picked.document;
@@ -614,17 +631,17 @@ export function activate(context: vscode.ExtensionContext) {
         DocumentDetailsPanel.createOrShow(
           context.extensionUri,
           dmsService,
-          doc
+          doc,
         );
       }
-    })
+    }),
   );
 
   // Speech Panel öffnen
   context.subscriptions.push(
     vscode.commands.registerCommand("dms.openSpeechPanel", async () => {
       SpeechPanel.createOrShow(context.extensionUri, dmsService);
-    })
+    }),
   );
 
   // === Tag Management Commands ===
@@ -647,7 +664,7 @@ export function activate(context: vscode.ExtensionContext) {
               description: d.path,
               document: d,
             })),
-            { placeHolder: "Dokument(e) auswählen", canPickMany: true }
+            { placeHolder: "Dokument(e) auswählen", canPickMany: true },
           );
           if (picked) {
             targets = picked.map((p) => ({ document: p.document }));
@@ -676,16 +693,16 @@ export function activate(context: vscode.ExtensionContext) {
                   await dmsService.addTagToDocument(t.document.id, cleanTag);
                 }
               }
-            }
+            },
           );
           documentsProvider.refresh();
           tagsProvider.refresh();
           vscode.window.showInformationMessage(
-            `Tag "${cleanTag}" zu ${targets.length} Dokument(en) hinzugefügt`
+            `Tag "${cleanTag}" zu ${targets.length} Dokument(en) hinzugefügt`,
           );
         }
-      }
-    )
+      },
+    ),
   );
 
   // Auto-Tagging (AI)
@@ -709,7 +726,7 @@ export function activate(context: vscode.ExtensionContext) {
             {
               placeHolder: "Dokument(e) für Auto-Tagging auswählen",
               canPickMany: true,
-            }
+            },
           );
           if (picked) {
             targets = picked.map((p) => ({ document: p.document }));
@@ -746,10 +763,10 @@ export function activate(context: vscode.ExtensionContext) {
             documentsProvider.refresh();
             tagsProvider.refresh();
             vscode.window.showInformationMessage(`Auto-Tagging abgeschlossen.`);
-          }
+          },
         );
-      }
-    )
+      },
+    ),
   );
 
   // Tag von Dokument entfernen
@@ -770,7 +787,7 @@ export function activate(context: vscode.ExtensionContext) {
               description: d.path,
               document: d,
             })),
-            { placeHolder: "Dokument(e) auswählen", canPickMany: true }
+            { placeHolder: "Dokument(e) auswählen", canPickMany: true },
           );
           if (picked) {
             targets = picked.map((p) => ({ document: p.document }));
@@ -787,7 +804,7 @@ export function activate(context: vscode.ExtensionContext) {
           const doc = targets[0].document;
           if (!doc.tags || doc.tags.length === 0) {
             vscode.window.showWarningMessage(
-              "Keine Tags zum Entfernen vorhanden"
+              "Keine Tags zum Entfernen vorhanden",
             );
             return;
           }
@@ -812,20 +829,20 @@ export function activate(context: vscode.ExtensionContext) {
                 if (t.document?.id) {
                   await dmsService.removeTagFromDocument(
                     t.document.id,
-                    tagToRemove!
+                    tagToRemove!,
                   );
                 }
               }
-            }
+            },
           );
           documentsProvider.refresh();
           tagsProvider.refresh();
           vscode.window.showInformationMessage(
-            `Tag "${tagToRemove}" von ${targets.length} Dokument(en) entfernt`
+            `Tag "${tagToRemove}" von ${targets.length} Dokument(en) entfernt`,
           );
         }
-      }
-    )
+      },
+    ),
   );
 
   // Dokumente vergleichen (AI)
@@ -848,7 +865,7 @@ export function activate(context: vscode.ExtensionContext) {
             {
               placeHolder: "Wähle exakt 2 Dokumente zum Vergleich",
               canPickMany: true,
-            }
+            },
           );
           if (picked && picked.length === 2) {
             targets = picked.map((p) => ({ document: p.document }));
@@ -857,7 +874,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (!targets || targets.length !== 2) {
           vscode.window.showWarningMessage(
-            "Bitte wählen Sie genau 2 Dokumente für den Vergleich aus."
+            "Bitte wählen Sie genau 2 Dokumente für den Vergleich aus.",
           );
           return;
         }
@@ -871,7 +888,7 @@ export function activate(context: vscode.ExtensionContext) {
             try {
               const result = await dmsService.compareDocuments(
                 targets[0].document.id,
-                targets[1].document.id
+                targets[1].document.id,
               );
               const doc = await vscode.workspace.openTextDocument({
                 content: result,
@@ -881,10 +898,10 @@ export function activate(context: vscode.ExtensionContext) {
             } catch (error) {
               vscode.window.showErrorMessage(`Fehler beim Vergleich: ${error}`);
             }
-          }
+          },
         );
-      }
-    )
+      },
+    ),
   );
 
   // Daten extrahieren (AI)
@@ -901,7 +918,7 @@ export function activate(context: vscode.ExtensionContext) {
             description: d.path,
             document: d,
           })),
-          { placeHolder: "Dokument auswählen" }
+          { placeHolder: "Dokument auswählen" },
         );
         if (picked) {
           docId = picked.document.id;
@@ -928,7 +945,7 @@ export function activate(context: vscode.ExtensionContext) {
             description: "Zusammenfassung, Wichtige Daten",
           },
         ],
-        { placeHolder: "Extraktions-Template wählen" }
+        { placeHolder: "Extraktions-Template wählen" },
       );
 
       if (template) {
@@ -941,7 +958,7 @@ export function activate(context: vscode.ExtensionContext) {
             try {
               const result = await dmsService.extractStructuredData(
                 docId!,
-                template.value as any
+                template.value as any,
               );
               const doc = await vscode.workspace.openTextDocument({
                 content: result,
@@ -950,13 +967,13 @@ export function activate(context: vscode.ExtensionContext) {
               await vscode.window.showTextDocument(doc);
             } catch (error) {
               vscode.window.showErrorMessage(
-                `Fehler bei der Extraktion: ${error}`
+                `Fehler bei der Extraktion: ${error}`,
               );
             }
-          }
+          },
         );
       }
-    })
+    }),
   );
 
   // Tag löschen (global)
@@ -975,17 +992,17 @@ export function activate(context: vscode.ExtensionContext) {
       const confirm = await vscode.window.showWarningMessage(
         `Tag "${tag}" aus allen Dokumenten entfernen?`,
         { modal: true },
-        "Löschen"
+        "Löschen",
       );
       if (confirm === "Löschen") {
         const count = await dmsService.deleteTag(tag);
         documentsProvider.refresh();
         tagsProvider.refresh();
         vscode.window.showInformationMessage(
-          `Tag aus ${count} Dokument(en) entfernt`
+          `Tag aus ${count} Dokument(en) entfernt`,
         );
       }
-    })
+    }),
   );
 
   // Auto-Rename
@@ -1006,19 +1023,19 @@ export function activate(context: vscode.ExtensionContext) {
           async () => {
             try {
               const newName = await dmsService.autoRenameDocument(
-                item.document!.id
+                item.document!.id,
               );
               vscode.window.showInformationMessage(`Umbenannt zu: ${newName}`);
               // Refresh happens automatically via FileWatcher event
             } catch (error) {
               vscode.window.showErrorMessage(
-                `Fehler beim Umbenennen: ${error}`
+                `Fehler beim Umbenennen: ${error}`,
               );
             }
-          }
+          },
         );
-      }
-    )
+      },
+    ),
   );
 
   // Import
@@ -1037,10 +1054,10 @@ export function activate(context: vscode.ExtensionContext) {
         await dmsService.importDocuments(files);
         documentsProvider.refresh();
         vscode.window.showInformationMessage(
-          `${files.length} Dokument(e) importiert`
+          `${files.length} Dokument(e) importiert`,
         );
       }
-    })
+    }),
   );
 
   // Export
@@ -1055,7 +1072,7 @@ export function activate(context: vscode.ExtensionContext) {
         await dmsService.exportDocuments(folder[0]);
         vscode.window.showInformationMessage("Export abgeschlossen");
       }
-    })
+    }),
   );
 
   // Settings
@@ -1063,9 +1080,9 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("dms.showSettings", () => {
       vscode.commands.executeCommand(
         "workbench.action.openSettings",
-        "@ext:dmscode.dmscode"
+        "@ext:dmscode.dmscode",
       );
-    })
+    }),
   );
 
   // Update StatusBar when documents change
@@ -1098,7 +1115,7 @@ async function showWelcomeMessage(context: vscode.ExtensionContext) {
     "🎉 Willkommen bei DMSCode! Ihr Document Management System für VS Code ist bereit.",
     "Dashboard öffnen",
     "Einrichten",
-    "Später"
+    "Später",
   );
 
   if (action === "Dashboard öffnen") {
@@ -1106,7 +1123,7 @@ async function showWelcomeMessage(context: vscode.ExtensionContext) {
   } else if (action === "Einrichten") {
     vscode.commands.executeCommand(
       "workbench.action.openWalkthrough",
-      "dmscode.dmscode#dms.gettingStarted"
+      "dmscode.dmscode#dms.gettingStarted",
     );
   }
 

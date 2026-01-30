@@ -9,7 +9,7 @@ export class DmsAssistant {
     request: vscode.ChatRequest,
     context: vscode.ChatContext,
     stream: vscode.ChatResponseStream,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> {
     const command = request.command;
     const prompt = request.prompt;
@@ -40,7 +40,7 @@ export class DmsAssistant {
   private async handleSearch(
     query: string,
     stream: vscode.ChatResponseStream,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> {
     stream.progress("Suche läuft...");
 
@@ -54,8 +54,8 @@ export class DmsAssistant {
       for (const result of results.slice(0, 5)) {
         stream.markdown(
           `- 📄 **${result.document.name}** (${Math.round(
-            result.score * 100
-          )}% Relevanz)\n`
+            result.score * 100,
+          )}% Relevanz)\n`,
         );
         stream.markdown(`  > ${result.snippet.substring(0, 150)}...\n\n`);
 
@@ -74,7 +74,7 @@ export class DmsAssistant {
   private async handleSummarize(
     prompt: string,
     stream: vscode.ChatResponseStream,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> {
     stream.progress("Zusammenfassung wird erstellt...");
 
@@ -97,7 +97,7 @@ export class DmsAssistant {
   private async handleExtract(
     prompt: string,
     stream: vscode.ChatResponseStream,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> {
     stream.progress("Informationen werden extrahiert...");
 
@@ -120,11 +120,11 @@ export class DmsAssistant {
   private async handleCompare(
     prompt: string,
     stream: vscode.ChatResponseStream,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> {
     stream.markdown("📊 **Dokumentenvergleich**\n\n");
     stream.markdown(
-      "Diese Funktion wird noch implementiert. Bitte wählen Sie zwei Dokumente aus.\n"
+      "Diese Funktion wird noch implementiert. Bitte wählen Sie zwei Dokumente aus.\n",
     );
 
     stream.button({
@@ -138,7 +138,7 @@ export class DmsAssistant {
   private async handleGeneral(
     prompt: string,
     stream: vscode.ChatResponseStream,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): Promise<vscode.ChatResult> {
     stream.progress("Sammle Kontext...");
 
@@ -151,21 +151,31 @@ export class DmsAssistant {
         ? editor.document.getText().substring(0, 2000)
         : editor.document.getText(selection);
       context += `\nAktives Dokument (${path.basename(
-        editor.document.fileName
+        editor.document.fileName,
       )}):\n${text}\n`;
     }
 
     // 2. Hybrid Retrieval: Graph + Vector Search
     let useGraphRAG = false;
-    
+
     // Detect if query benefits from structured knowledge (entities, relationships)
-    const structuredKeywords = ['wer', 'welche', 'organisation', 'person', 'verbindung', 'beziehung', 'zusammenhang'];
-    useGraphRAG = structuredKeywords.some(kw => prompt.toLowerCase().includes(kw));
+    const structuredKeywords = [
+      "wer",
+      "welche",
+      "organisation",
+      "person",
+      "verbindung",
+      "beziehung",
+      "zusammenhang",
+    ];
+    useGraphRAG = structuredKeywords.some((kw) =>
+      prompt.toLowerCase().includes(kw),
+    );
 
     if (useGraphRAG) {
       try {
         stream.progress("Durchsuche Knowledge Graph...");
-        
+
         // Try to find relevant entities first
         const graphResult = await this.queryGraphForContext(prompt);
         if (graphResult) {
@@ -174,7 +184,10 @@ export class DmsAssistant {
           stream.markdown("🧠 *Verwendet Knowledge Graph*\n\n");
         }
       } catch (error) {
-        console.warn("Graph query failed, falling back to vector search:", error);
+        console.warn(
+          "Graph query failed, falling back to vector search:",
+          error,
+        );
         useGraphRAG = false;
       }
     }
@@ -216,14 +229,26 @@ export class DmsAssistant {
   private async queryGraphForContext(prompt: string): Promise<string | null> {
     // Simple pattern matching for entity types
     let entityQuery = "";
-    
-    if (prompt.toLowerCase().includes('organisation') || prompt.toLowerCase().includes('firma')) {
+
+    if (
+      prompt.toLowerCase().includes("organisation") ||
+      prompt.toLowerCase().includes("firma")
+    ) {
       entityQuery = "SELECT * FROM entity WHERE type = 'organization' LIMIT 10";
-    } else if (prompt.toLowerCase().includes('person') || prompt.toLowerCase().includes('wer')) {
+    } else if (
+      prompt.toLowerCase().includes("person") ||
+      prompt.toLowerCase().includes("wer")
+    ) {
       entityQuery = "SELECT * FROM entity WHERE type = 'person' LIMIT 10";
-    } else if (prompt.toLowerCase().includes('datum') || prompt.toLowerCase().includes('wann')) {
+    } else if (
+      prompt.toLowerCase().includes("datum") ||
+      prompt.toLowerCase().includes("wann")
+    ) {
       entityQuery = "SELECT * FROM entity WHERE type = 'date' LIMIT 10";
-    } else if (prompt.toLowerCase().includes('betrag') || prompt.toLowerCase().includes('preis')) {
+    } else if (
+      prompt.toLowerCase().includes("betrag") ||
+      prompt.toLowerCase().includes("preis")
+    ) {
       entityQuery = "SELECT * FROM entity WHERE type = 'amount' LIMIT 10";
     } else {
       // Generic query: get all recent entities
@@ -232,20 +257,20 @@ export class DmsAssistant {
 
     try {
       const result = await this.dmsService.queryKnowledgeGraph(entityQuery);
-      
+
       if (result && result.result && result.result.length > 0) {
         let contextText = "Gefundene Entitäten:\n";
-        
+
         for (const entity of result.result[0]?.result || []) {
           contextText += `- ${entity.type}: ${entity.value} (Confidence: ${entity.confidence})\n`;
         }
-        
+
         return contextText;
       }
     } catch (error) {
       console.error("Graph query failed:", error);
     }
-    
+
     return null;
   }
 }

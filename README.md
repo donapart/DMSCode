@@ -27,19 +27,19 @@ Eigener Fork von VS Code mit eingebauten DMS-Features.
 
 ## 📦 Features
 
-| Feature                 | Status | Beschreibung                                               |
-| ----------------------- | ------ | ---------------------------------------------------------- |
-| **Dokumenten-Explorer** | ✅      | TreeView mit Dokumenten, Tags und Suchergebnissen.         |
-| **PDF Viewer**          | ✅      | Integrierter PDF-Viewer (pdf.js) mit OCR-Button.           |
-| **OCR Scanner**         | ✅      | Texterkennung für Bilder und PDFs (Tesseract/LLM).         |
-| **Semantic Search**     | ✅      | Suche nach Bedeutung statt nur Keywords (RAG).             |
-| **AI Chat (@dms)**      | ✅      | Chat mit Dokumenten, Zusammenfassungen, Extraktion.        |
-| **Auto-Tagging**        | ✅      | KI schlägt Tags basierend auf Inhalt vor.                  |
-| **Portable Index**      | ✅      | Metadaten liegen in `dms-index.json` direkt beim Dokument. |
-| **Knowledge Graph**     | ✅      | GraphRAG mit SurrealDB für Entitäten und Beziehungen.      |
-| **Graph Visualisierung**| ✅      | Interaktive D3.js Visualisierung des Knowledge Graphs.     |
-| **Kalender**            | ✅      | Zeitliche Übersicht der Dokumente.                         |
-| **Dashboard**           | ✅      | Übersicht über letzte Dokumente und Tag-Cloud.             |
+| Feature                  | Status | Beschreibung                                               |
+| ------------------------ | ------ | ---------------------------------------------------------- |
+| **Dokumenten-Explorer**  | ✅      | TreeView mit Dokumenten, Tags und Suchergebnissen.         |
+| **PDF Viewer**           | ✅      | Integrierter PDF-Viewer (pdf.js) mit OCR-Button.           |
+| **OCR Scanner**          | ✅      | Texterkennung für Bilder und PDFs (Tesseract/LLM).         |
+| **Semantic Search**      | ✅      | Suche nach Bedeutung statt nur Keywords (RAG).             |
+| **AI Chat (@dms)**       | ✅      | Chat mit Dokumenten, Zusammenfassungen, Extraktion.        |
+| **Auto-Tagging**         | ✅      | KI schlägt Tags basierend auf Inhalt vor.                  |
+| **Portable Index**       | ✅      | Metadaten liegen in `dms-index.json` direkt beim Dokument. |
+| **Knowledge Graph**      | ✅      | GraphRAG mit SurrealDB für Entitäten und Beziehungen.      |
+| **Graph Visualisierung** | ✅      | Interaktive D3.js Visualisierung des Knowledge Graphs.     |
+| **Kalender**             | ✅      | Zeitliche Übersicht der Dokumente.                         |
+| **Dashboard**            | ✅      | Übersicht über letzte Dokumente und Tag-Cloud.             |
 
 ## 🌟 Highlights
 

@@ -22,22 +22,10 @@ server {
     return 200 '{"status":"ok"}';
   }
 
-  # Optional API key protection (only when DMS_API_KEY is set)
-  set $require_api_key "${DMS_API_KEY}";
-  if ($require_api_key != "") {
-    if ($api_key_ok = 0) {
-      return 401;
-    }
-  }
-
   # CORS
   add_header Access-Control-Allow-Origin * always;
   add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, DELETE" always;
   add_header Access-Control-Allow-Headers "Content-Type, Authorization, X-API-KEY" always;
-
-  if ($request_method = OPTIONS) {
-    return 204;
-  }
 
   # Ollama (Chat/LLM)
   location /api/ {

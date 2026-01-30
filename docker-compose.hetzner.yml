@@ -110,6 +110,34 @@ services:
       - ollama
     restart: unless-stopped
 
+  minio:
+    image: minio/minio
+    container_name: dmscode-minio
+    command: server /data --console-address ":9001"
+    volumes:
+      - /mnt/dms_data/storage:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-dmscode}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-dmscode123}
+    ports:
+      # Expose API (9000) and Console (9001) only to localhost or via VPN/Proxy
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    restart: unless-stopped
+
+  automation-service:
+    build:
+      context: ./backend/automation
+      dockerfile: Dockerfile
+    container_name: dmscode-automation
+    volumes:
+      - ./backend/automation:/app
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: unless-stopped
+
 volumes:
   dmscode-temp:
   dmscode-embeddings:

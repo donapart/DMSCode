@@ -59,13 +59,15 @@ services:
     environment:
       - OLLAMA_HOST=0.0.0.0
     restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # GPU-Unterstützung (optional - auskommentiert für CPU-only Betrieb)
+    # Um GPU zu nutzen, installiere NVIDIA Container Toolkit und entferne die Kommentare:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
 
   # ═══════════════════════════════════════════════════════════
   # TTS Service - Text-to-Speech (Piper)
@@ -94,7 +96,7 @@ services:
     image: redis:alpine
     container_name: dmscode-redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - dmscode-redis:/data
     restart: unless-stopped
@@ -105,6 +107,7 @@ services:
   surrealdb:
     image: surrealdb/surrealdb:latest
     container_name: dmscode-surrealdb
+    user: root
     ports:
       - "8000:8000"
     volumes:
@@ -127,6 +130,9 @@ services:
     environment:
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_MODEL=llama3.2:3b
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - SURREALDB_URL=ws://surrealdb:8000/rpc
       - SURREALDB_NS=dmscode
       - SURREALDB_DB=knowledge
@@ -134,7 +140,24 @@ services:
       - SURREALDB_PASS=root
     depends_on:
       - surrealdb
-      - ollama
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════
+  # Automation Service - Workflow Engine (DMSFlow)
+  # ═══════════════════════════════════════════════════════════
+  automation-service:
+    build:
+      context: ./backend/automation
+      dockerfile: Dockerfile
+    container_name: dmscode-automation
+    ports:
+      - "8540:8540"
+    volumes:
+      - ./backend/automation:/app
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
     restart: unless-stopped
 
 volumes:

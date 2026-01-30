@@ -29,7 +29,7 @@ services:
       - dmscode-temp:/tmp/ocr
     working_dir: /app
     command: >
-      bash -c "pip install fastapi uvicorn pytesseract pdf2image Pillow &&
+      bash -c "pip install fastapi uvicorn pytesseract pdf2image Pillow python-multipart &&
                apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-deu poppler-utils &&
                uvicorn main:app --host 0.0.0.0 --port 8510"
     environment:

@@ -2,6 +2,7 @@ import axios, { AxiosError } from "axios";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
+import { AutomationService } from "./AutomationService";
 
 // Custom Error Classes for better error handling
 export class DmsError extends Error {
@@ -56,6 +57,7 @@ export class DmsService {
   private documentsCache: Map<string, DmsDocument> = new Map();
   private readonly ocrFallbackEnabled: boolean = true;
   private fileWatcher: vscode.FileSystemWatcher | undefined;
+  private automationService: AutomationService;
 
   private _onDidDocumentsChange: vscode.EventEmitter<void> =
     new vscode.EventEmitter<void>();
@@ -64,6 +66,7 @@ export class DmsService {
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
+    this.automationService = new AutomationService();
     this.loadDocumentsCache();
     this.initializeFileWatcher();
   }
@@ -270,6 +273,10 @@ export class DmsService {
     } catch {
       return "";
     }
+  }
+
+  private getIdFromPath(p: string): string {
+    return Buffer.from(p).toString("base64");
   }
 
   // ===== Configuration =====
@@ -543,11 +550,13 @@ export class DmsService {
           );
         }
         fs.copyFileSync(srcPath, newDest);
+        this.triggerAutomation("on_import", newDest);
         return true;
       }
       // overwrite
     }
     fs.copyFileSync(srcPath, destPath);
+    this.triggerAutomation("on_import", destPath);
     return true;
   }
 
@@ -958,12 +967,55 @@ export class DmsService {
         return (
           (response.data as OpenAIResponse).choices[0]?.message?.content || ""
         );
+      } else if (provider === "anthropic") {
+        const apiKey = this.getConfig<string>("anthropicApiKey");
+        if (!apiKey) {
+          throw new DmsError(
+            "Anthropic API Key nicht konfiguriert",
+            "LLM_ERROR",
+          );
+        }
+        const response = await axios.post(
+          "https://api.anthropic.com/v1/messages",
+          {
+            model: this.llmModel || "claude-3-5-sonnet-latest",
+            max_tokens: 4096,
+            system:
+              "Du bist ein hilfreicher DMS-Assistent für Dokumentenmanagement.",
+            messages: [
+              ...(context
+                ? [
+                    { role: "user" as const, content: `Kontext:\n${context}` },
+                    {
+                      role: "assistant" as const,
+                      content: "Verstanden, ich berücksichtige diesen Kontext.",
+                    },
+                  ]
+                : []),
+              { role: "user" as const, content: message },
+            ],
+          },
+          {
+            headers: {
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01",
+              "Content-Type": "application/json",
+            },
+            timeout: 60000,
+          },
+        );
+
+        interface AnthropicResponse {
+          content: Array<{ type: string; text: string }>;
+        }
+        const anthropicData = response.data as AnthropicResponse;
+        return anthropicData.content.find((c) => c.type === "text")?.text || "";
       }
 
       throw new DmsError(
         `Provider ${provider} nicht implementiert`,
         "LLM_ERROR",
-        { provider, supportedProviders: ["ollama", "openai"] },
+        { provider, supportedProviders: ["ollama", "openai", "anthropic"] },
       );
     } catch (error) {
       if (error instanceof DmsError) {
@@ -1397,5 +1449,19 @@ export class DmsService {
     }
 
     return { success, failed };
+  }
+
+  private triggerAutomation(event: string, filePath: string) {
+    // Fire and forget automation event
+    const docId = this.getIdFromPath(filePath);
+    const fileName = path.basename(filePath);
+    this.automationService.notifyEvent(event, {
+      doc_id: docId,
+      file_path: filePath, // Note: In future S3 setup, this might needs adaptation
+      metadata: {
+        filename: fileName,
+        timestamp: new Date().toISOString(),
+      },
+    });
   }
 }

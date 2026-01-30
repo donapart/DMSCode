@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 # Environment variables
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")  # ollama, anthropic, openai
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 SURREALDB_URL = os.getenv("SURREALDB_URL", "ws://surrealdb:8000/rpc")
 SURREALDB_NS = os.getenv("SURREALDB_NS", "dmscode")
 SURREALDB_DB = os.getenv("SURREALDB_DB", "knowledge")
@@ -113,32 +116,17 @@ async def init_schema():
         return
     
     try:
-        # Define tables
+        # Define tables - using SCHEMALESS for flexibility
         await db.query("""
-            DEFINE TABLE document SCHEMAFULL;
-            DEFINE FIELD doc_id ON document TYPE string;
-            DEFINE FIELD filename ON document TYPE string;
-            DEFINE FIELD text_preview ON document TYPE string;
-            DEFINE FIELD tags ON document TYPE array;
-            DEFINE FIELD created_at ON document TYPE datetime;
+            DEFINE TABLE document SCHEMALESS;
             DEFINE INDEX idx_doc_id ON document COLUMNS doc_id UNIQUE;
             
-            DEFINE TABLE entity SCHEMAFULL;
-            DEFINE FIELD type ON entity TYPE string;
-            DEFINE FIELD value ON entity TYPE string;
-            DEFINE FIELD confidence ON entity TYPE float;
-            DEFINE FIELD metadata ON entity TYPE object;
-            DEFINE FIELD created_at ON entity TYPE datetime;
+            DEFINE TABLE entity SCHEMALESS;
             DEFINE INDEX idx_entity_value ON entity COLUMNS value;
             DEFINE INDEX idx_entity_type ON entity COLUMNS type;
             
-            DEFINE TABLE mentions SCHEMAFULL TYPE RELATION FROM document TO entity;
-            DEFINE FIELD confidence ON mentions TYPE float;
-            DEFINE FIELD context ON mentions TYPE string;
-            
-            DEFINE TABLE relates SCHEMAFULL TYPE RELATION FROM entity TO entity;
-            DEFINE FIELD type ON relates TYPE string;
-            DEFINE FIELD confidence ON relates TYPE float;
+            DEFINE TABLE mentions SCHEMALESS TYPE RELATION FROM document TO entity;
+            DEFINE TABLE relates SCHEMALESS TYPE RELATION FROM entity TO entity;
         """)
         logger.info("✓ Schema initialized")
     except Exception as e:
@@ -147,7 +135,7 @@ async def init_schema():
 
 # LLM-based entity extraction
 async def extract_entities_with_llm(text: str, metadata: Dict[str, Any]) -> tuple[List[Entity], List[Relationship]]:
-    """Use Ollama LLM to extract entities and relationships"""
+    """Use LLM to extract entities and relationships - supports Ollama, Anthropic, OpenAI"""
     
     prompt = f"""Extract entities and relationships from this document text.
 
@@ -160,7 +148,7 @@ Extract:
 1. Entities with types: person, organization, date, amount, product, location
 2. Relationships between entities: works_for, mentions, issued_by, refers_to, contains
 
-Respond in JSON format:
+Respond ONLY with valid JSON in this exact format:
 {{
   "entities": [
     {{"type": "organization", "value": "Telekom GmbH", "confidence": 0.95}},
@@ -173,28 +161,72 @@ Respond in JSON format:
 }}"""
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{OLLAMA_URL}/api/generate",
-                json={
-                    "model": OLLAMA_MODEL,
-                    "prompt": prompt,
-                    "stream": False,
-                    "format": "json"
-                }
-            )
-            response.raise_for_status()
-            result = response.json()
-            
-            # Parse LLM response
-            import json
-            llm_output = json.loads(result.get("response", "{}"))
-            
-            entities = [Entity(**e) for e in llm_output.get("entities", [])]
-            relationships = [Relationship(**r) for r in llm_output.get("relationships", [])]
-            
-            logger.info(f"Extracted {len(entities)} entities and {len(relationships)} relationships")
-            return entities, relationships
+        import json
+        
+        if LLM_PROVIDER == "anthropic" and ANTHROPIC_API_KEY:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": ANTHROPIC_API_KEY,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": os.getenv("ANTHROPIC_MODEL", "claude-3-haiku-20240307"),
+                        "max_tokens": 2048,
+                        "messages": [{"role": "user", "content": prompt}]
+                    }
+                )
+                response.raise_for_status()
+                result = response.json()
+                llm_text = result["content"][0]["text"]
+                # Extract JSON from response
+                if "```json" in llm_text:
+                    llm_text = llm_text.split("```json")[1].split("```")[0]
+                elif "```" in llm_text:
+                    llm_text = llm_text.split("```")[1].split("```")[0]
+                llm_output = json.loads(llm_text.strip())
+                
+        elif LLM_PROVIDER == "openai" and OPENAI_API_KEY:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {OPENAI_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": "gpt-4o-mini",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "response_format": {"type": "json_object"}
+                    }
+                )
+                response.raise_for_status()
+                result = response.json()
+                llm_output = json.loads(result["choices"][0]["message"]["content"])
+                
+        else:
+            # Ollama (default)
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{OLLAMA_URL}/api/generate",
+                    json={
+                        "model": OLLAMA_MODEL,
+                        "prompt": prompt,
+                        "stream": False,
+                        "format": "json"
+                    }
+                )
+                response.raise_for_status()
+                result = response.json()
+                llm_output = json.loads(result.get("response", "{}"))
+        
+        entities = [Entity(**e) for e in llm_output.get("entities", [])]
+        relationships = [Relationship(**r) for r in llm_output.get("relationships", [])]
+        
+        logger.info(f"[{LLM_PROVIDER}] Extracted {len(entities)} entities and {len(relationships)} relationships")
+        return entities, relationships
             
     except Exception as e:
         logger.error(f"LLM extraction failed: {e}")
@@ -259,6 +291,13 @@ async def extract_document(request: ExtractionRequest):
             "tags": request.metadata.get("tags", []),
             "created_at": datetime.now().isoformat()
         })
+        logger.info(f"Created document: {doc_record}")
+        
+        # Get doc_id from response - handle different response formats
+        if isinstance(doc_record, list) and len(doc_record) > 0:
+            doc_id_ref = doc_record[0].get("id") if isinstance(doc_record[0], dict) else doc_record[0]
+        else:
+            doc_id_ref = doc_record.get("id") if isinstance(doc_record, dict) else str(doc_record)
         
         # Store entities and create relationships
         for entity in entities:
@@ -267,10 +306,19 @@ async def extract_document(request: ExtractionRequest):
                 "SELECT * FROM entity WHERE type = $type AND value = $value LIMIT 1",
                 {"type": entity.type, "value": entity.value}
             )
+            logger.info(f"Existing check: {existing}")
             
-            if existing and len(existing[0].get("result", [])) > 0:
-                entity_id = existing[0]["result"][0]["id"]
-            else:
+            entity_id = None
+            if existing and isinstance(existing, list) and len(existing) > 0:
+                first_result = existing[0]
+                if isinstance(first_result, dict) and "result" in first_result:
+                    results = first_result.get("result", [])
+                    if results and len(results) > 0:
+                        entity_id = results[0].get("id")
+                elif isinstance(first_result, list) and len(first_result) > 0:
+                    entity_id = first_result[0].get("id")
+            
+            if not entity_id:
                 # Create new entity
                 entity_record = await db.create("entity", {
                     "type": entity.type,
@@ -279,13 +327,20 @@ async def extract_document(request: ExtractionRequest):
                     "metadata": entity.metadata,
                     "created_at": datetime.now().isoformat()
                 })
-                entity_id = entity_record[0]["id"]
+                logger.info(f"Created entity: {entity_record}")
+                
+                # Handle different response formats
+                if isinstance(entity_record, list) and len(entity_record) > 0:
+                    entity_id = entity_record[0].get("id") if isinstance(entity_record[0], dict) else str(entity_record[0])
+                else:
+                    entity_id = entity_record.get("id") if isinstance(entity_record, dict) else str(entity_record)
             
-            # Create mentions relationship
-            await db.query(
-                f"RELATE {doc_record[0]['id']}->mentions->{entity_id} SET confidence = $conf, context = $ctx",
-                {"conf": entity.confidence, "ctx": request.text[:200]}
-            )
+            if entity_id and doc_id_ref:
+                # Create mentions relationship
+                await db.query(
+                    f"RELATE {doc_id_ref}->mentions->{entity_id} SET confidence = $conf, context = $ctx",
+                    {"conf": entity.confidence, "ctx": request.text[:200]}
+                )
         
         # Store entity-to-entity relationships
         for rel in relationships:

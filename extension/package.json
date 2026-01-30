@@ -2,7 +2,7 @@
   "name": "dmscode",
   "displayName": "DMSCode - Document Management System",
   "description": "Verwandelt VS Code in ein vollständiges Document Management System mit OCR, Semantic Search, AI-Chat und mehr",
-  "version": "0.6.0",
+  "version": "0.7.2",
   "publisher": "dmscode",
   "license": "MIT",
   "repository": {
@@ -401,7 +401,17 @@
         "dms.llmModel": {
           "type": "string",
           "default": "llama3.2",
-          "description": "LLM Modell"
+          "description": "LLM Modell (z.B. llama3.2, gpt-4o, claude-3-5-sonnet-latest)"
+        },
+        "dms.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API Key (für Provider 'openai')"
+        },
+        "dms.anthropicApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Anthropic API Key (für Provider 'anthropic')"
         },
         "dms.ttsBackend": {
           "type": "string",
@@ -466,6 +476,16 @@
           }
         ],
         "priority": "option"
+      },
+      {
+        "viewType": "dms.flowEditor",
+        "displayName": "DMS Workflow Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.dmsflow"
+          }
+        ],
+        "priority": "default"
       }
     ],
     "chatParticipants": [
